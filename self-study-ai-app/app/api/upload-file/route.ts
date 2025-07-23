@@ -35,8 +35,19 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     console.log('Supabase client created successfully')
 
+    // Sanitize filename for storage
+    const sanitizeFileName = (fileName: string) => {
+      // Remove or replace problematic characters
+      return fileName
+        .replace(/[^\w.-]/g, '_') // Replace non-alphanumeric chars with underscore
+        .replace(/_{2,}/g, '_')   // Replace multiple underscores with single
+        .replace(/^_+|_+$/g, '')  // Remove leading/trailing underscores
+        .substring(0, 100)        // Limit length
+    }
+
     // Upload file to Supabase Storage
-    const fileName = `${Date.now()}-${file.name}`
+    const sanitizedFileName = sanitizeFileName(file.name)
+    const fileName = `${Date.now()}-${sanitizedFileName}`
     console.log('Attempting to upload file:', fileName)
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploaded-files')

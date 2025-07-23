@@ -4,25 +4,37 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 interface Message {
   id: string
-  session_id: string
+  conversation_id: string
   role: 'user' | 'assistant'
-  message: string
+  content: string
   audio_url: string | null
+  created_at: string
+}
+
+interface Conversation {
+  id: string
+  user_id: string
+  upload_id: string
+  title: string
+  status: string
   created_at: string
 }
 
 export default function InterviewPage() {
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversation, setConversation] = useState<Conversation | null>(null)
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [supabase, setSupabase] = useState<any>(null)
+  const router = useRouter()
 
   useEffect(() => {
     try {
@@ -34,21 +46,109 @@ export default function InterviewPage() {
   }, [])
 
   useEffect(() => {
-    // TODO: Load existing messages for current session
-    loadMessages()
-  }, [])
+    if (supabase) {
+      initializeConversation()
+    }
+  }, [supabase])
 
-  const loadMessages = async () => {
+  const initializeConversation = async () => {
     if (!supabase) return
     
     try {
-      // TODO: Get current session ID from URL params or context
-      const sessionId = 'current-session-id'
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
       
+      // Get file ID from localStorage
+      const fileId = localStorage.getItem('currentFileId')
+      if (!fileId) {
+        console.error('No file ID found')
+        return
+      }
+
+      let currentConversation = null
+
+      if (user) {
+        // Authenticated user - check if conversation already exists for this file
+        const { data: existingConversation, error: conversationError } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('upload_id', fileId)
+          .eq('status', 'active')
+          .single()
+
+        if (conversationError && conversationError.code !== 'PGRST116') {
+          console.error('Error checking conversation:', conversationError)
+          return
+        }
+
+        currentConversation = existingConversation
+
+        // Create new conversation if none exists
+        if (!existingConversation) {
+          const { data: newConversation, error: createError } = await supabase
+            .from('conversations')
+            .insert({
+              user_id: user.id,
+              upload_id: fileId,
+              title: 'AI Interview Session',
+              status: 'active'
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('Error creating conversation:', createError)
+            return
+          }
+
+          currentConversation = newConversation
+        }
+      } else {
+        // Anonymous user - create a temporary conversation ID
+        // For anonymous users, we'll use a session-based approach
+        const sessionId = `anonymous-${Date.now()}`
+        currentConversation = {
+          id: sessionId,
+          user_id: null,
+          upload_id: fileId,
+          title: 'AI Interview Session (Anonymous)',
+          status: 'active',
+          created_at: new Date().toISOString()
+        }
+      }
+
+      setConversation(currentConversation)
+      
+      if (user) {
+        // Only load messages from database for authenticated users
+        loadMessages(currentConversation.id)
+      } else {
+        // Load messages from localStorage for anonymous users
+        const savedMessages = localStorage.getItem(`messages-${currentConversation.id}`)
+        if (savedMessages) {
+          try {
+            const messages = JSON.parse(savedMessages)
+            setMessages(messages)
+          } catch (error) {
+            console.error('Error loading messages from localStorage:', error)
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error initializing conversation:', error)
+    }
+  }
+
+  const loadMessages = async (conversationId: string) => {
+    if (!supabase) return
+    
+    try {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
       if (error) {
@@ -63,55 +163,98 @@ export default function InterviewPage() {
   }
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !supabase) return
+    if (!inputMessage.trim() || !conversation) return
+
+    console.log('sendMessage called with:', inputMessage)
+    console.log('conversation:', conversation)
 
     setIsLoading(true)
     try {
-      // TODO: Get current session ID
-      const sessionId = 'current-session-id'
-      
-      // Save user message
-      const { data: userMessage, error: userError } = await supabase
-        .from('messages')
-        .insert({
-          session_id: sessionId,
-          role: 'user',
-          message: inputMessage,
-        })
-        .select()
-        .single()
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      console.log('Current user:', user)
 
-      if (userError) {
-        console.error('Error saving user message:', userError)
-        return
+      if (user && supabase) {
+        console.log('Processing as authenticated user')
+        // Authenticated user - save to database
+        const { data: userMessage, error: userError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            role: 'user',
+            content: inputMessage,
+          })
+          .select()
+          .single()
+
+        if (userError) {
+          console.error('Error saving user message:', userError)
+          return
+        }
+
+        // Add user message to state
+        setMessages(prev => [...prev, userMessage])
+        setInputMessage('')
+
+        // Generate AI response
+        console.log('Calling generateAIResponse...')
+        const aiResponse = await generateAIResponse(inputMessage)
+
+        // Save AI message
+        const { data: aiMessage, error: aiError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            role: 'assistant',
+            content: aiResponse,
+            audio_url: null, // TODO: Generate audio URL
+          })
+          .select()
+          .single()
+
+        if (aiError) {
+          console.error('Error saving AI message:', aiError)
+          return
+        }
+
+        // Add AI message to state
+        setMessages(prev => [...prev, aiMessage])
+      } else {
+        console.log('Processing as anonymous user')
+        // Anonymous user - save to localStorage
+        const userMessage = {
+          id: `msg-${Date.now()}-1`,
+          conversation_id: conversation.id,
+          role: 'user' as const,
+          content: inputMessage,
+          audio_url: null,
+          created_at: new Date().toISOString()
+        }
+
+        // Add user message to state
+        setMessages(prev => [...prev, userMessage])
+        setInputMessage('')
+
+        // Generate AI response
+        console.log('Calling generateAIResponse for anonymous user...')
+        const aiResponse = await generateAIResponse(inputMessage)
+
+        const aiMessage = {
+          id: `msg-${Date.now()}-2`,
+          conversation_id: conversation.id,
+          role: 'assistant' as const,
+          content: aiResponse,
+          audio_url: null,
+          created_at: new Date().toISOString()
+        }
+
+        // Add AI message to state
+        setMessages(prev => [...prev, aiMessage])
+
+        // Save messages to localStorage for anonymous users
+        const allMessages = [...messages, userMessage, aiMessage]
+        localStorage.setItem(`messages-${conversation.id}`, JSON.stringify(allMessages))
       }
-
-      // Add user message to state
-      setMessages(prev => [...prev, userMessage])
-      setInputMessage('')
-
-      // TODO: Generate AI response using OpenAI/Claude API
-      const aiResponse = await generateAIResponse(inputMessage)
-
-      // Save AI message
-      const { data: aiMessage, error: aiError } = await supabase
-        .from('messages')
-        .insert({
-          session_id: sessionId,
-          role: 'assistant',
-          message: aiResponse,
-          audio_url: null, // TODO: Generate audio URL
-        })
-        .select()
-        .single()
-
-      if (aiError) {
-        console.error('Error saving AI message:', aiError)
-        return
-      }
-
-      // Add AI message to state
-      setMessages(prev => [...prev, aiMessage])
 
     } catch (error) {
       console.error('Error sending message:', error)
@@ -122,27 +265,40 @@ export default function InterviewPage() {
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
     try {
+      console.log('generateAIResponse called with:', userMessage)
+      
       // Get current file ID from localStorage
       const fileId = localStorage.getItem('currentFileId')
+      console.log('fileId from localStorage:', fileId)
+      console.log('conversation:', conversation)
+      
+      const requestBody = {
+        message: userMessage,
+        conversationId: conversation?.id,
+        fileId: fileId,
+        difficulty: 'normal', // TODO: Get from user settings
+      }
+      
+      console.log('Sending request to API:', requestBody)
       
       const response = await fetch('/api/generate-ai-response', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: userMessage,
-          sessionId: 'current-session-id', // TODO: Get actual session ID
-          fileId: fileId, // Pass file ID for context
-          difficulty: 'normal', // TODO: Get from user settings
-        }),
+        body: JSON.stringify(requestBody),
       })
 
+      console.log('API response status:', response.status)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API error response:', errorText)
         throw new Error('Failed to generate AI response')
       }
 
       const data = await response.json()
+      console.log('API response data:', data)
       return data.message
     } catch (error) {
       console.error('Error generating AI response:', error)
@@ -166,14 +322,42 @@ export default function InterviewPage() {
     setTimeout(() => setIsPlaying(false), 3000) // Placeholder
   }
 
+  const handleBack = () => {
+    router.push('/upload')
+  }
+
+  if (!conversation) {
+    return (
+      <div className="container max-w-4xl mx-auto p-4">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-center text-muted-foreground">セッションを初期化中...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">AIインタビュー</CardTitle>
-          <CardDescription>
-            AIと音声で対話しながら学習を進めましょう
-          </CardDescription>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleBack}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex-1">
+              <CardTitle className="text-2xl">AIインタビュー</CardTitle>
+              <CardDescription>
+                AIと音声で対話しながら学習を進めましょう
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Messages Display */}
@@ -190,7 +374,7 @@ export default function InterviewPage() {
                       : 'bg-secondary'
                   }`}
                 >
-                  <p className="text-sm">{message.message}</p>
+                  <p className="text-sm">{message.content}</p>
                   {message.audio_url && (
                     <Button
                       variant="ghost"
