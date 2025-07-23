@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -34,7 +34,18 @@ export default function InterviewPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [supabase, setSupabase] = useState<any>(null)
+  const [streamingMessage, setStreamingMessage] = useState('')
   const router = useRouter()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, streamingMessage])
 
   useEffect(() => {
     try {
@@ -169,6 +180,7 @@ export default function InterviewPage() {
     console.log('conversation:', conversation)
 
     setIsLoading(true)
+    setStreamingMessage('')
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
@@ -196,9 +208,9 @@ export default function InterviewPage() {
         setMessages(prev => [...prev, userMessage])
         setInputMessage('')
 
-        // Generate AI response
+        // Generate AI response with streaming
         console.log('Calling generateAIResponse...')
-        const aiResponse = await generateAIResponse(inputMessage)
+        const aiResponse = await generateAIResponse(inputMessage, setStreamingMessage)
 
         // Save AI message
         const { data: aiMessage, error: aiError } = await supabase
@@ -235,9 +247,9 @@ export default function InterviewPage() {
         setMessages(prev => [...prev, userMessage])
         setInputMessage('')
 
-        // Generate AI response
+        // Generate AI response with streaming
         console.log('Calling generateAIResponse for anonymous user...')
-        const aiResponse = await generateAIResponse(inputMessage)
+        const aiResponse = await generateAIResponse(inputMessage, setStreamingMessage)
 
         const aiMessage = {
           id: `msg-${Date.now()}-2`,
@@ -260,10 +272,11 @@ export default function InterviewPage() {
       console.error('Error sending message:', error)
     } finally {
       setIsLoading(false)
+      setStreamingMessage('')
     }
   }
 
-  const generateAIResponse = async (userMessage: string): Promise<string> => {
+  const generateAIResponse = async (userMessage: string, onStream?: (content: string) => void): Promise<string> => {
     try {
       console.log('generateAIResponse called with:', userMessage)
       
@@ -297,9 +310,48 @@ export default function InterviewPage() {
         throw new Error('Failed to generate AI response')
       }
 
-      const data = await response.json()
-      console.log('API response data:', data)
-      return data.message
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      let fullResponse = ''
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              break
+            }
+
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.content) {
+                fullResponse += parsed.content
+                if (onStream) {
+                  onStream(fullResponse)
+                }
+              } else if (parsed.error) {
+                console.error('Streaming error:', parsed.error)
+                throw new Error(parsed.error)
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      return fullResponse
     } catch (error) {
       console.error('Error generating AI response:', error)
       return '申し訳ございません。AIの応答生成中にエラーが発生しました。'
@@ -392,13 +444,28 @@ export default function InterviewPage() {
                 </div>
               </div>
             ))}
-            {isLoading && (
+            
+            {/* Streaming message */}
+            {streamingMessage && (
+              <div className="flex justify-start">
+                <div className="bg-secondary px-4 py-2 rounded-lg max-w-xs lg:max-w-md">
+                  <p className="text-sm">
+                    {streamingMessage}
+                    <span className="animate-pulse">▋</span>
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {isLoading && !streamingMessage && (
               <div className="flex justify-start">
                 <div className="bg-secondary px-4 py-2 rounded-lg">
                   <p className="text-sm text-muted-foreground">AIが考え中...</p>
                 </div>
               </div>
             )}
+            
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}

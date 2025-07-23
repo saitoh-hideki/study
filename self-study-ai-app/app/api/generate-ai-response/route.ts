@@ -61,9 +61,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = await response.json()
-    console.log('Edge Function success:', data)
-    return NextResponse.json(data)
+    // Return streaming response
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader()
+        if (!reader) {
+          controller.close()
+          return
+        }
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = new TextDecoder().decode(value)
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6)
+                if (data === '[DONE]') {
+                  controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+                  break
+                }
+
+                try {
+                  const parsed = JSON.parse(data)
+                  if (parsed.content) {
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: parsed.content })}\n\n`))
+                  } else if (parsed.error) {
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: parsed.error })}\n\n`))
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Streaming error:', error)
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Streaming error' })}\n\n`))
+        } finally {
+          controller.close()
+        }
+      }
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    })
 
   } catch (error) {
     console.error('API error:', error)
