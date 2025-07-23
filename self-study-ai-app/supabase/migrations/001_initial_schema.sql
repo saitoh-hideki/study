@@ -41,11 +41,12 @@ CREATE TABLE public.messages (
 CREATE TABLE public.user_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    user_id UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     voice_type TEXT DEFAULT 'Rachel',
     difficulty_level TEXT DEFAULT 'medium' CHECK (difficulty_level IN ('easy', 'medium', 'hard')),
     language TEXT DEFAULT 'ja-JP',
-    voice_speed NUMERIC DEFAULT 1.0
+    voice_speed NUMERIC DEFAULT 1.0,
+    UNIQUE(user_id)
 );
 
 -- Create indexes

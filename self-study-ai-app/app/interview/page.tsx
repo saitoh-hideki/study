@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import FileExplorer from '@/components/file-explorer'
 
 interface Message {
   id: string
@@ -26,6 +27,15 @@ interface Conversation {
   created_at: string
 }
 
+interface StudyFile {
+  id: string
+  name: string
+  file_name: string
+  extracted_text: string
+  created_at: string
+  user_id: string | null
+}
+
 export default function InterviewPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [conversation, setConversation] = useState<Conversation | null>(null)
@@ -35,6 +45,7 @@ export default function InterviewPage() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [supabase, setSupabase] = useState<any>(null)
   const [streamingMessage, setStreamingMessage] = useState('')
+  const [selectedFile, setSelectedFile] = useState<StudyFile | null>(null)
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -63,92 +74,11 @@ export default function InterviewPage() {
   }, [supabase])
 
   const initializeConversation = async () => {
-    if (!supabase) return
-    
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      // Get file ID from localStorage
-      const fileId = localStorage.getItem('currentFileId')
-      if (!fileId) {
-        console.error('No file ID found')
-        return
-      }
-
-      let currentConversation = null
-
-      if (user) {
-        // Authenticated user - check if conversation already exists for this file
-        const { data: existingConversation, error: conversationError } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('upload_id', fileId)
-          .eq('status', 'active')
-          .single()
-
-        if (conversationError && conversationError.code !== 'PGRST116') {
-          console.error('Error checking conversation:', conversationError)
-          return
-        }
-
-        currentConversation = existingConversation
-
-        // Create new conversation if none exists
-        if (!existingConversation) {
-          const { data: newConversation, error: createError } = await supabase
-            .from('conversations')
-            .insert({
-              user_id: user.id,
-              upload_id: fileId,
-              title: 'AI Interview Session',
-              status: 'active'
-            })
-            .select()
-            .single()
-
-          if (createError) {
-            console.error('Error creating conversation:', createError)
-            return
-          }
-
-          currentConversation = newConversation
-        }
-      } else {
-        // Anonymous user - create a temporary conversation ID
-        // For anonymous users, we'll use a session-based approach
-        const sessionId = `anonymous-${Date.now()}`
-        currentConversation = {
-          id: sessionId,
-          user_id: null,
-          upload_id: fileId,
-          title: 'AI Interview Session (Anonymous)',
-          status: 'active',
-          created_at: new Date().toISOString()
-        }
-      }
-
-      setConversation(currentConversation)
-      
-      if (user) {
-        // Only load messages from database for authenticated users
-        loadMessages(currentConversation.id)
-      } else {
-        // Load messages from localStorage for anonymous users
-        const savedMessages = localStorage.getItem(`messages-${currentConversation.id}`)
-        if (savedMessages) {
-          try {
-            const messages = JSON.parse(savedMessages)
-            setMessages(messages)
-          } catch (error) {
-            console.error('Error loading messages from localStorage:', error)
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error('Error initializing conversation:', error)
+    // This function is now deprecated - use initializeConversationForFile instead
+    // Only initialize if there's a file ID in localStorage
+    const fileId = localStorage.getItem('currentFileId')
+    if (fileId && supabase) {
+      initializeConversationForFile(fileId)
     }
   }
 
@@ -235,7 +165,7 @@ export default function InterviewPage() {
         console.log('Processing as anonymous user')
         // Anonymous user - save to localStorage
         const userMessage = {
-          id: `msg-${Date.now()}-1`,
+          id: `user-${Date.now()}`,
           conversation_id: conversation.id,
           role: 'user' as const,
           content: inputMessage,
@@ -243,16 +173,14 @@ export default function InterviewPage() {
           created_at: new Date().toISOString()
         }
 
-        // Add user message to state
         setMessages(prev => [...prev, userMessage])
         setInputMessage('')
 
-        // Generate AI response with streaming
-        console.log('Calling generateAIResponse for anonymous user...')
+        // Generate AI response
         const aiResponse = await generateAIResponse(inputMessage, setStreamingMessage)
 
         const aiMessage = {
-          id: `msg-${Date.now()}-2`,
+          id: `ai-${Date.now()}`,
           conversation_id: conversation.id,
           role: 'assistant' as const,
           content: aiResponse,
@@ -260,14 +188,12 @@ export default function InterviewPage() {
           created_at: new Date().toISOString()
         }
 
-        // Add AI message to state
         setMessages(prev => [...prev, aiMessage])
 
-        // Save messages to localStorage for anonymous users
+        // Save to localStorage
         const allMessages = [...messages, userMessage, aiMessage]
         localStorage.setItem(`messages-${conversation.id}`, JSON.stringify(allMessages))
       }
-
     } catch (error) {
       console.error('Error sending message:', error)
     } finally {
@@ -321,31 +247,27 @@ export default function InterviewPage() {
 
       while (true) {
         const { done, value } = await reader.read()
+        
         if (done) break
-
+        
         const chunk = decoder.decode(value)
         const lines = chunk.split('\n')
-
+        
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6)
             if (data === '[DONE]') {
-              break
+              return fullResponse
             }
-
+            
             try {
               const parsed = JSON.parse(data)
               if (parsed.content) {
                 fullResponse += parsed.content
-                if (onStream) {
-                  onStream(fullResponse)
-                }
-              } else if (parsed.error) {
-                console.error('Streaming error:', parsed.error)
-                throw new Error(parsed.error)
+                onStream?.(fullResponse)
               }
             } catch (e) {
-              // Skip invalid JSON
+              console.error('Error parsing streaming data:', e)
             }
           }
         }
@@ -354,144 +276,268 @@ export default function InterviewPage() {
       return fullResponse
     } catch (error) {
       console.error('Error generating AI response:', error)
-      return '申し訳ございません。AIの応答生成中にエラーが発生しました。'
+      return '申し訳ございません。エラーが発生しました。'
     }
   }
 
   const startRecording = () => {
     setIsRecording(true)
-    // TODO: Implement voice recording
+    // TODO: Implement actual recording
+    setTimeout(() => setIsRecording(false), 3000) // Placeholder
   }
 
   const stopRecording = () => {
     setIsRecording(false)
-    // TODO: Process recorded audio
+    // TODO: Stop recording and send audio
   }
 
   const playAudio = (audioUrl: string) => {
     setIsPlaying(true)
-    // TODO: Implement audio playback
+    // TODO: Implement actual audio playback
     setTimeout(() => setIsPlaying(false), 3000) // Placeholder
+  }
+
+  const handleFileSelect = (file: StudyFile) => {
+    setSelectedFile(file)
+    localStorage.setItem('currentFileId', file.id)
+    // Clear current conversation and messages when switching files
+    setConversation(null)
+    setMessages([])
+    // Initialize new conversation for the selected file
+    if (supabase) {
+      initializeConversationForFile(file.id)
+    }
+  }
+
+  const initializeConversationForFile = async (fileId: string) => {
+    if (!supabase) return
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      let currentConversation = null
+
+      if (user) {
+        // Authenticated user - check if conversation already exists for this file
+        const { data: existingConversation, error: conversationError } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('upload_id', fileId)
+          .eq('status', 'active')
+          .single()
+
+        if (conversationError && conversationError.code !== 'PGRST116') {
+          console.error('Error checking conversation:', conversationError)
+          return
+        }
+
+        currentConversation = existingConversation
+
+        // Create new conversation if none exists
+        if (!existingConversation) {
+          const { data: newConversation, error: createError } = await supabase
+            .from('conversations')
+            .insert({
+              user_id: user.id,
+              upload_id: fileId,
+              title: 'AI Interview Session',
+              status: 'active'
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('Error creating conversation:', createError)
+            return
+          }
+
+          currentConversation = newConversation
+        }
+      } else {
+        // Anonymous user - create a temporary conversation ID
+        const sessionId = `anonymous-${Date.now()}`
+        currentConversation = {
+          id: sessionId,
+          user_id: null,
+          upload_id: fileId,
+          title: 'AI Interview Session (Anonymous)',
+          status: 'active',
+          created_at: new Date().toISOString()
+        }
+      }
+
+      setConversation(currentConversation)
+      
+      if (user) {
+        // Only load messages from database for authenticated users
+        loadMessages(currentConversation.id)
+      } else {
+        // Load messages from localStorage for anonymous users
+        const savedMessages = localStorage.getItem(`messages-${currentConversation.id}`)
+        if (savedMessages) {
+          try {
+            const messages = JSON.parse(savedMessages)
+            setMessages(messages)
+          } catch (error) {
+            console.error('Error loading messages from localStorage:', error)
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error initializing conversation:', error)
+    }
   }
 
   const handleBack = () => {
     router.push('/upload')
   }
 
-  if (!conversation) {
-    return (
-      <div className="container max-w-4xl mx-auto p-4">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-center text-muted-foreground">セッションを初期化中...</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="container max-w-4xl mx-auto p-4 space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleBack}
-              className="shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex-1">
-              <CardTitle className="text-2xl">AIインタビュー</CardTitle>
-              <CardDescription>
-                AIと音声で対話しながら学習を進めましょう
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Messages Display */}
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary'
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  {message.audio_url && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => playAudio(message.audio_url!)}
-                      className="mt-2"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-4 w-4" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-            
-            {/* Streaming message */}
-            {streamingMessage && (
-              <div className="flex justify-start">
-                <div className="bg-secondary px-4 py-2 rounded-lg max-w-xs lg:max-w-md">
-                  <p className="text-sm">
-                    {streamingMessage}
-                    <span className="animate-pulse">▋</span>
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {isLoading && !streamingMessage && (
-              <div className="flex justify-start">
-                <div className="bg-secondary px-4 py-2 rounded-lg">
-                  <p className="text-sm text-muted-foreground">AIが考え中...</p>
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+    <div className="h-screen bg-gray-50 flex">
+      {/* File Explorer Sidebar */}
+      <FileExplorer 
+        onFileSelect={handleFileSelect}
+        selectedFileId={selectedFile?.id}
+      />
 
-          {/* Input Area */}
-          <div className="flex gap-2">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {selectedFile ? selectedFile.name : 'AIインタビュー'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {selectedFile ? 'ファイルを選択中' : 'ファイルを選択してください'}
+                </p>
+              </div>
+            </div>
             <Button
               variant="outline"
-              size="icon"
-              onClick={isRecording ? stopRecording : startRecording}
-              className={isRecording ? 'bg-red-100' : ''}
+              size="sm"
+              onClick={handleBack}
             >
-              <Mic className="h-4 w-4" />
-            </Button>
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
-              placeholder="メッセージを入力..."
-              onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && sendMessage()}
-              className="flex-1 px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
-              <Send className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              戻る
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {!selectedFile ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  ファイルを選択してください
+                </h3>
+                <p className="text-gray-500">
+                  左側のサイドバーから学習ファイルを選択するか、新しいファイルを作成してください。
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 bg-white">
+              <div className="h-full flex flex-col">
+                {/* Messages Display */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="space-y-4 max-w-4xl mx-auto">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-3 rounded-xl shadow-sm ${
+                            message.role === 'user'
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          {message.audio_url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => playAudio(message.audio_url!)}
+                              className="mt-2"
+                            >
+                              {isPlaying ? (
+                                <Pause className="h-4 w-4" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Streaming message */}
+                    {streamingMessage && (
+                      <div className="flex justify-start">
+                        <div className="bg-gray-100 px-4 py-3 rounded-xl shadow-sm max-w-xs lg:max-w-md">
+                          <p className="text-sm text-gray-800">
+                            {streamingMessage}
+                            <span className="animate-pulse">▋</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {isLoading && !streamingMessage && (
+                      <div className="flex justify-start">
+                        <div className="bg-gray-100 px-4 py-3 rounded-xl shadow-sm">
+                          <p className="text-sm text-gray-600">AIが考え中...</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+
+                {/* Input Area */}
+                <div className="border-t border-gray-200 p-6">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={`rounded-full ${isRecording ? 'bg-red-100 border-red-300' : 'bg-white'}`}
+                      >
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                      <input
+                        type="text"
+                        value={inputMessage}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
+                        placeholder="メッセージを入力..."
+                        onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && sendMessage()}
+                        className="flex-1 px-4 py-2 text-sm bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <Button 
+                        onClick={sendMessage} 
+                        disabled={isLoading || !inputMessage.trim()}
+                        className="rounded-full bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 } 

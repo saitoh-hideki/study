@@ -57,11 +57,41 @@ serve(async (req) => {
       )
     }
 
+    // 特殊処理：最初の「こんにちは」だけの入力に対して挨拶で返す
+    if (message.trim() === "こんにちは") {
+      const greetingResponse = "こんにちは！学習を始めましょう。ご質問や資料について教えてください。"
+      
+      // Create streaming response for greeting
+      const stream = new ReadableStream({
+        async start(controller) {
+          const words = greetingResponse.split('')
+          for (const char of words) {
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: char })}\n\n`))
+            await new Promise(resolve => setTimeout(resolve, 30))
+          }
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
+        }
+      })
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        }
+      })
+    }
+
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: '環境変数の設定が不足しています' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -70,8 +100,6 @@ serve(async (req) => {
     }
 
     // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get file context if fileId is provided
@@ -102,27 +130,40 @@ serve(async (req) => {
       }
     }
     
-    // Create system prompt based on difficulty
+    // 難易度ごとの導入メッセージ
     const difficultyPrompts = {
-      easy: 'あなたは親切で分かりやすい学習アシスタントです。基本的な質問から始めて、段階的に理解を深められるようにサポートしてください。',
-      normal: 'あなたは優秀な学習アシスタントです。学習者の理解度を確認しながら、適切な質問で深い理解を促進してください。',
-      hard: 'あなたは高度な学習アシスタントです。学習者の思考を深め、批判的思考を促進する質問をしてください。'
-    }
+      easy: "あなたは親切で分かりやすい学習アシスタントです。基本的な質問から始めて、段階的に理解を深められるようにサポートしてください。",
+      normal: "あなたは優秀な学習アシスタントです。学習者の理解度を確認しながら、適切な質問で深い理解を促進してください。",
+      hard: "あなたは高度な学習アシスタントです。学習者の思考を深め、批判的思考を促進する質問をしてください。"
+    };
 
+    // 構造化プロンプト
     const systemPrompt = `${difficultyPrompts[difficulty as keyof typeof difficultyPrompts]}
 
 学習資料の内容:
 ${context}
 
 あなたの役割:
-1. 学習者の回答に対して適切な質問を投げかける
-2. 理解を深めるための追加の質問をする
-3. 必要に応じて補足説明を提供する
-4. 学習者の思考を促進する
+1. 学習者の回答に対して簡潔な見解を述べる
+2. 思考を深めるための次の質問を提示する
+3. 関連する新たな観点や質問を提示することで、より広い理解を促す
+
+【出力形式】
+以下の3つの項目に分けて日本語で出力してください：
+
+1. 回答への見解:
+（ここにAIの評価や補足など）
+
+2. 次の質問:
+（ユーザーの思考を進める問い）
+
+3. 関連質問（任意）:
+（異なる観点や補足の問い）
 
 学習者の回答: ${message}
 
-上記の回答に対して、学習を促進する質問やコメントを返してください。`
+この回答に対して、上記のフォーマットに沿って返してください。
+※もし適切な質問が浮かばない場合は、「この観点ではさらに深めるのが難しいです。他の観点から質問をします。」のように素直に答えてください。`
 
     // Call OpenAI API with streaming
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -132,7 +173,7 @@ ${context}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -140,7 +181,7 @@ ${context}
           }
         ],
         stream: true,
-        max_tokens: 500,
+        max_tokens: 700,
         temperature: 0.7,
       }),
     })

@@ -32,25 +32,59 @@ export default function SettingsPage() {
   const loadUserSettings = async () => {
     setIsLoading(true)
     try {
-      // TODO: Get current user ID from auth
-      const userId = 'current-user-id'
+      // Get current user from auth
+      const { data: { user } } = await supabase.auth.getUser()
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error loading user settings:', error)
+      if (!user) {
+        console.log('No authenticated user found')
         return
       }
 
-      setUser(data)
-      setSettings({
-        language: data.language || 'ja',
+      // Try to get user settings from user_settings table first
+      let { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error) {
+        console.log('No user settings found, creating default settings')
+        // Create default user settings
+        const { data: newSettings, error: createError } = await supabase
+          .from('user_settings')
+          .insert({
+            user_id: user.id,
+            language: 'ja-JP',
+            voice_type: 'Rachel',
+            difficulty_level: 'medium',
+            voice_speed: 1.0
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating user settings:', createError)
+          return
+        }
+
+        data = newSettings
+      }
+
+      // Create user object from settings
+      const userData = {
+        id: user.id,
+        email: user.email || null,
+        created_at: user.created_at,
+        language: data.language || 'ja-JP',
         voice_type: data.voice_type || 'Rachel',
-        difficulty: data.difficulty || 'normal'
+        difficulty: data.difficulty_level || 'medium'
+      }
+
+      setUser(userData)
+      setSettings({
+        language: data.language || 'ja-JP',
+        voice_type: data.voice_type || 'Rachel',
+        difficulty: data.difficulty_level || 'medium'
       })
     } catch (error) {
       console.error('Error loading user settings:', error)
@@ -65,13 +99,13 @@ export default function SettingsPage() {
     setIsLoading(true)
     try {
       const { error } = await supabase
-        .from('users')
+        .from('user_settings')
         .update({
           language: settings.language,
           voice_type: settings.voice_type,
-          difficulty: settings.difficulty
+          difficulty_level: settings.difficulty
         })
-        .eq('id', user.id)
+        .eq('user_id', user.id)
 
       if (error) {
         console.error('Error updating settings:', error)
