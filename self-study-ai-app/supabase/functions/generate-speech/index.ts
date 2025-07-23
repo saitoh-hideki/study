@@ -1,158 +1,140 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface RequestBody {
-  text: string
-  messageId: string
-  voiceType?: string
-}
+const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+const ELEVENLABS_VOICE_ID = Deno.env.get("ELEVENLABS_VOICE_ID") || "pNInz6obpgDQGcFmaJgB"; // Adam (日本語対応)
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  // CORSプリフライト対応
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
+      }
+    });
   }
+
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", {
+      status: 405
+    });
+  }
+
+  let text = "";
+  let language = "ja"; // デフォルトは日本語
 
   try {
-    const { text, messageId, voiceType = 'Rachel' }: RequestBody = await req.json()
+    const body = await req.json();
+    text = body.text?.toString() || "";
+    language = body.language || "ja";
+    
+    if (!text) throw new Error("No text provided");
 
-    if (!text || !messageId) {
-      return new Response(
-        JSON.stringify({ error: 'Text and messageId are required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    // 日本語テキストの前処理
+    if (language === "ja") {
+      // 句読点の正規化
+      text = text.replace(/[、。]/g, (match) => {
+        return match === "、" ? "," : ".";
+      });
+      
+      // 長い文章を適切な長さに分割（音声品質向上のため）
+      const sentences = text.split(/[。！？]/).filter((s) => s.trim());
+      if (sentences.length > 1 && text.length > 200) {
+        // 長い文章の場合は最初の2文までに制限
+        text = sentences.slice(0, 2).join("。") + "。";
+      }
+      
+      // 特殊文字の除去
+      text = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3000-\u303F\uFF00-\uFFEF\s,.]/g, "");
     }
-
-    // Get ElevenLabs API key from environment
-    const elevenLabsApiKey = Deno.env.get('ELEVENLABS_API_KEY')
-    if (!elevenLabsApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'ElevenLabs API key not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    // Voice ID mapping
-    const voiceIds = {
-      'Rachel': '21m00Tcm4TlvDq8ikWAM', // Rachel - Female
-      'John': 'AZnzlk1XvdvUeBnXmlld',   // Domi - Male
-      'Emma': 'EXAVITQu4vr4xnSDxMaL',   // Bella - Young Female
-      'David': 'VR6AewLTigWG4xSOukaG'   // Arnold - Young Male
-    }
-
-    const voiceId = voiceIds[voiceType as keyof typeof voiceIds] || voiceIds['Rachel']
-
-    // Call ElevenLabs API
-    const elevenLabsResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
+  } catch {
+    return new Response(JSON.stringify({
+      error: "Invalid request body"
+    }), {
+      status: 400,
       headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': elevenLabsApiKey,
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-        },
-      }),
-    })
-
-    if (!elevenLabsResponse.ok) {
-      const errorData = await elevenLabsResponse.text()
-      console.error('ElevenLabs API error:', errorData)
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate speech' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    // Get audio data
-    const audioBuffer = await elevenLabsResponse.arrayBuffer()
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Upload audio to Supabase Storage
-    const fileName = `audio/${messageId}.mp3`
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('audio-files')
-      .upload(fileName, audioBuffer, {
-        contentType: 'audio/mpeg',
-        upsert: true
-      })
-
-    if (uploadError) {
-      console.error('Error uploading audio:', uploadError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to upload audio' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('audio-files')
-      .getPublicUrl(fileName)
-
-    const audioUrl = urlData.publicUrl
-
-    // Update message with audio URL
-    const { error: updateError } = await supabase
-      .from('messages')
-      .update({ audio_url: audioUrl })
-      .eq('id', messageId)
-
-    if (updateError) {
-      console.error('Error updating message:', updateError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to update message' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        audioUrl: audioUrl,
-        success: true 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
       }
-    )
-
-  } catch (error) {
-    console.error('Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    });
   }
-}) 
+
+  if (!ELEVENLABS_API_KEY) {
+    return new Response(JSON.stringify({
+      error: "Missing ElevenLabs API key"
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
+      }
+    });
+  }
+
+  // 日本語専用の音声設定
+  const japaneseVoiceSettings = {
+    stability: 0.8,
+    similarity_boost: 0.9,
+    style: 0.2,
+    use_speaker_boost: true
+  };
+
+  // 英語用の音声設定
+  const englishVoiceSettings = {
+    stability: 0.7,
+    similarity_boost: 0.8,
+    style: 0.3,
+    use_speaker_boost: true
+  };
+
+  const voiceSettings = language === "ja" ? japaneseVoiceSettings : englishVoiceSettings;
+  const modelId = language === "ja" ? "eleven_multilingual_v2" : "eleven_monolingual_v1";
+
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`;
+  
+  const elevenRes = await fetch(url, {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+      "Accept": "audio/mpeg"
+    },
+    body: JSON.stringify({
+      text,
+      model_id: modelId,
+      voice_settings: voiceSettings
+    })
+  });
+
+  if (!elevenRes.ok || !elevenRes.body) {
+    const err = await elevenRes.text();
+    return new Response(JSON.stringify({
+      error: "TTS failed",
+      detail: err
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
+      }
+    });
+  }
+
+  return new Response(elevenRes.body, {
+    status: 200,
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
+    }
+  });
+}); 

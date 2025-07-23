@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
@@ -46,6 +46,10 @@ export default function InterviewPage() {
   const [supabase, setSupabase] = useState<any>(null)
   const [streamingMessage, setStreamingMessage] = useState('')
   const [selectedFile, setSelectedFile] = useState<StudyFile | null>(null)
+  // 削除予定の状態変数
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true) // 削除予定
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
+  const [speechLoading, setSpeechLoading] = useState<string | null>(null) // 音声生成中のメッセージID
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -264,6 +268,7 @@ export default function InterviewPage() {
               const parsed = JSON.parse(data)
               if (parsed.content) {
                 fullResponse += parsed.content
+                // ストリーミング中は音声生成を無効にする
                 onStream?.(fullResponse)
               }
             } catch (e) {
@@ -291,10 +296,97 @@ export default function InterviewPage() {
     // TODO: Stop recording and send audio
   }
 
+  const generateSpeech = async (text: string, messageId: string) => {
+    // テキストの検証を強化
+    if (!text || !text.trim()) {
+      console.log('No text provided for speech generation')
+      return
+    }
+    
+    // テキストが短すぎる場合はスキップ
+    if (text.trim().length < 5) {
+      console.log('Text too short for speech generation:', text)
+      return
+    }
+
+    // ローディング状態を設定
+    setSpeechLoading(messageId)
+    console.log('Starting speech generation for message:', messageId)
+
+    try {
+      console.log('Generating speech for complete text:', text.substring(0, 100) + '...')
+      
+      const response = await fetch('/api/generate-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text.trim(),
+          language: 'ja',
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Failed to generate speech:', errorText)
+        setSpeechLoading(null)
+        return
+      }
+
+      // 音声データを直接取得
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+      console.log('Audio generated successfully, playing...')
+      playAudio(audioUrl)
+    } catch (error) {
+      console.error('Error generating speech:', error)
+    } finally {
+      setSpeechLoading(null)
+    }
+  }
+
   const playAudio = (audioUrl: string) => {
-    setIsPlaying(true)
-    // TODO: Implement actual audio playback
-    setTimeout(() => setIsPlaying(false), 3000) // Placeholder
+    // 既存の音声を停止
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.currentTime = 0
+    }
+
+    const audio = new Audio(audioUrl)
+    setCurrentAudio(audio)
+    
+    audio.onended = () => {
+      setIsPlaying(false)
+      setCurrentAudio(null)
+    }
+    
+    audio.onplay = () => {
+      setIsPlaying(true)
+    }
+    
+    audio.onpause = () => {
+      setIsPlaying(false)
+    }
+
+    audio.play().catch(error => {
+      console.error('Error playing audio:', error)
+      setIsPlaying(false)
+    })
+  }
+
+  const stopAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.currentTime = 0
+      setIsPlaying(false)
+      setCurrentAudio(null)
+    }
+  }
+
+  // 削除予定の関数
+  const toggleAudio = () => {
+    // この関数は削除予定
   }
 
   const handleFileSelect = (file: StudyFile) => {
@@ -417,14 +509,16 @@ export default function InterviewPage() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBack}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              戻る
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBack}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                戻る
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -460,21 +554,25 @@ export default function InterviewPage() {
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
-                          <p className="text-sm">{message.content}</p>
-                          {message.audio_url && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => playAudio(message.audio_url!)}
-                              className="mt-2"
-                            >
-                              {isPlaying ? (
-                                <Pause className="h-4 w-4" />
-                              ) : (
-                                <Play className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm flex-1">{message.content}</p>
+                            {message.role === 'assistant' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => generateSpeech(message.content, message.id)}
+                                className="flex-shrink-0 mt-1"
+                                title="音声で再生"
+                                disabled={speechLoading === message.id}
+                              >
+                                {speechLoading === message.id ? (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                                ) : (
+                                  <Volume2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -483,10 +581,26 @@ export default function InterviewPage() {
                     {streamingMessage && (
                       <div className="flex justify-start">
                         <div className="bg-gray-100 px-4 py-3 rounded-xl shadow-sm max-w-xs lg:max-w-md">
-                          <p className="text-sm text-gray-800">
-                            {streamingMessage}
-                            <span className="animate-pulse">▋</span>
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm text-gray-800 flex-1">
+                              {streamingMessage}
+                              <span className="animate-pulse">▋</span>
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => generateSpeech(streamingMessage, 'streaming')}
+                              className="flex-shrink-0 mt-1"
+                              title="音声で再生"
+                              disabled={speechLoading === 'streaming'}
+                            >
+                              {speechLoading === 'streaming' ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                              ) : (
+                                <Volume2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}

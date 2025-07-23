@@ -3,36 +3,39 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { text, messageId, voiceType } = body
+    const { text, language = 'ja' } = body
 
-    if (!text || !messageId) {
+    if (!text) {
       return NextResponse.json(
-        { error: 'Text and messageId are required' },
+        { error: 'Text is required' },
         { status: 400 }
       )
     }
 
     // Call Supabase Edge Function
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl) {
       return NextResponse.json(
         { error: 'Supabase configuration missing' },
         { status: 500 }
       )
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/generate-speech`, {
+    // Always use remote Edge Function
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/generate-speech`
+    
+    console.log('Using Edge Function URL:', edgeFunctionUrl)
+    
+    const response = await fetch(edgeFunctionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         text,
-        messageId,
-        voiceType: voiceType || 'Rachel',
+        language,
       }),
     })
 
@@ -45,8 +48,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Return the audio data directly
+    const audioBuffer = await response.arrayBuffer()
+    return new Response(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Access-Control-Allow-Origin': '*',
+      }
+    })
 
   } catch (error) {
     console.error('API error:', error)
