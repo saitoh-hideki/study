@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "自学自習AI - AIと対話しながら学ぶ、新しい学習体験",
+  title: "Reflecta - AIと対話しながら学ぶ、新しい学習体験",
   description: "PDFや記事をアップロードして、AIとインタビュー。理解の深さと定着を体感できる学習支援アプリケーション",
 };
 

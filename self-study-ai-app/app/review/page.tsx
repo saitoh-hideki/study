@@ -324,11 +324,11 @@ export default function ReviewPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container max-w-6xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <div className="container max-w-6xl mx-auto p-6 space-y-6 pt-24">
         {/* Header */}
-        <div className="text-center space-y-4 pt-4">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-gray-900">
             学習レビュー
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
@@ -339,13 +339,13 @@ export default function ReviewPage() {
             const fileId = urlParams.get('file_id')
             
             return fileId ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-gray-100 border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-700 font-medium">
+                    <p className="text-sm text-gray-700 font-medium">
                       プレビューモード: 特定のファイルのセッションのみを表示中
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-gray-600 mt-1">
                       {sessions.length}件のセッションが表示されています
                     </p>
                   </div>
@@ -360,7 +360,7 @@ export default function ReviewPage() {
                           window.location.reload()
                         }
                       }}
-                      className="flex items-center gap-2"
+                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       通常モードに戻る
@@ -370,7 +370,7 @@ export default function ReviewPage() {
               </div>
             ) : null
           })()}
-          <div className="flex justify-center gap-6 text-sm text-gray-500">
+          <div className="flex justify-center gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span>{sessions.length} セッション</span>
@@ -384,23 +384,23 @@ export default function ReviewPage() {
         
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Sessions List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
+          <Card className="lg:col-span-1 bg-white shadow-md border border-gray-200 rounded-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <BookOpen className="h-5 w-5 text-gray-600" />
                 学習セッション
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600">
                 過去の学習セッションを選択して復習できます
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">読み込み中...</p>
+                <p className="text-sm text-gray-600">読み込み中...</p>
               ) : sessions.length === 0 ? (
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {isClient ? (() => {
                       const urlParams = new URLSearchParams(window.location.search)
                       const fileId = urlParams.get('file_id')
@@ -411,25 +411,28 @@ export default function ReviewPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {sessions.map((session) => (
                     <div key={session.id} className="relative group">
-                      <Button
-                        variant={selectedSession?.id === session.id ? 'default' : 'outline'}
-                        className="w-full justify-start text-left pr-12"
+                      <div
+                        className={`w-full p-4 rounded-xl cursor-pointer transition-all ${
+                          selectedSession?.id === session.id 
+                            ? 'bg-gray-100 border border-gray-300 shadow-md' 
+                            : 'bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
                         onClick={async () => {
                           setSelectedSession(session)
                           await loadMessages(session.id)
                           await loadReviews()
                         }}
                       >
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{session.title}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex flex-col items-start pr-8">
+                          <span className="font-medium text-gray-900">{session.title}</span>
+                          <span className="text-xs text-gray-500 mt-1">
                             {new Date(session.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                      </Button>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -438,7 +441,7 @@ export default function ReviewPage() {
                           deleteSession(session.id)
                         }}
                         disabled={deletingSessionId === session.id}
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-800 hover:bg-red-50"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 hover:bg-red-50"
                         title="セッションを削除"
                       >
                         {deletingSessionId === session.id ? (
@@ -455,13 +458,13 @@ export default function ReviewPage() {
           </Card>
 
           {/* Messages and Reviews */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+          <Card className="lg:col-span-2 bg-white shadow-md border border-gray-200 rounded-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <MessageSquare className="h-5 w-5 text-gray-600" />
                 会話履歴とレビュー
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600">
                 {selectedSession ? selectedSession.title : 'セッションを選択してください'}
               </CardDescription>
               {selectedSession && reviews.length === 0 && (
@@ -469,7 +472,7 @@ export default function ReviewPage() {
                   <Button
                     onClick={generateReview}
                     disabled={isGeneratingReview}
-                    className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 hover:from-blue-100 hover:to-purple-100"
+                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
                   >
                     {isGeneratingReview ? (
                       <>
@@ -507,10 +510,10 @@ export default function ReviewPage() {
                       </div>
                       
                       {(showAllReviews ? reviews : reviews.slice(0, 1)).map((review, index) => (
-                        <Card key={review.id} className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-                          <CardHeader>
+                        <Card key={review.id} className="bg-white shadow-md border border-gray-200 rounded-xl">
+                          <CardHeader className="pb-4">
                             <div className="flex items-center justify-between">
-                              <CardTitle className="text-lg">{review.title}</CardTitle>
+                              <CardTitle className="text-lg text-gray-900">{review.title}</CardTitle>
                               <div className="flex items-center gap-2">
                                 <div className="text-xs text-gray-500">
                                   {new Date(review.created_at).toLocaleString('ja-JP')}
@@ -520,7 +523,7 @@ export default function ReviewPage() {
                                   size="sm"
                                   onClick={() => deleteReview(review.id)}
                                   disabled={deletingReviewId === review.id}
-                                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  className="text-gray-400 hover:text-red-600 hover:bg-red-50"
                                   title="レビューを削除"
                                 >
                                   {deletingReviewId === review.id ? (
@@ -538,7 +541,7 @@ export default function ReviewPage() {
                             )}
                           </CardHeader>
                           <CardContent>
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded-lg border">
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed bg-gray-50 p-6 rounded-xl border border-gray-100 text-gray-800">
                               {review.content}
                             </div>
                           </CardContent>
@@ -551,7 +554,7 @@ export default function ReviewPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setShowAllReviews(true)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                           >
                             他 {reviews.length - 1} 件のレビューを表示
                           </Button>
@@ -562,7 +565,7 @@ export default function ReviewPage() {
 
                   {/* Messages Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">会話履歴</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">会話履歴</h3>
                     <div className="max-h-96 overflow-y-auto space-y-4">
                       {messages.map((message) => (
                         <div
@@ -570,10 +573,10 @@ export default function ReviewPage() {
                           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            className={`max-w-xs lg:max-w-md px-4 py-3 rounded-xl ${
                               message.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-secondary'
+                                ? 'bg-gray-100 text-gray-900 shadow-sm'
+                                : 'bg-white border border-gray-200 text-gray-900 shadow-sm'
                             }`}
                           >
                             <p className="text-sm">{message.content}</p>
@@ -584,7 +587,7 @@ export default function ReviewPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground">
+                <p className="text-center text-gray-600">
                   左側からセッションを選択してください
                 </p>
               )}

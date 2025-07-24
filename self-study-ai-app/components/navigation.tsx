@@ -24,7 +24,7 @@ export function Navigation() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <span className="font-semibold">自学自習AI</span>
+              <span className="font-semibold">Reflecta</span>
             </Link>
             <div className="hidden md:flex items-center gap-2">
               {navigation.map((item) => {
