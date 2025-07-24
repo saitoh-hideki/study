@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Navigation } from "@/components/navigation";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "自学自習AIアプリ",
-  description: "AIとの対話的な学習を通じて理解を深める学習支援アプリケーション",
+  title: "自学自習AI - AIと対話しながら学ぶ、新しい学習体験",
+  description: "PDFや記事をアップロードして、AIとインタビュー。理解の深さと定着を体感できる学習支援アプリケーション",
 };
 
 export default function RootLayout({
@@ -25,11 +21,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} antialiased`}
       >
         <Navigation />
-        <main className="min-h-screen bg-background pt-16">
+        <main className="min-h-screen">
           {children}
         </main>
       </body>
