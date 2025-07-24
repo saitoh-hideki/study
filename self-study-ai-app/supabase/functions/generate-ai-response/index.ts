@@ -57,33 +57,6 @@ serve(async (req) => {
       )
     }
 
-    // 特殊処理：最初の「こんにちは」だけの入力に対して挨拶で返す
-    if (message.trim() === "こんにちは") {
-      const greetingResponse = "こんにちは！インタビューを始めましょう。あなたの考えや経験について聞かせてください。"
-      
-      // Create streaming response for greeting
-      const stream = new ReadableStream({
-        async start(controller) {
-          const words = greetingResponse.split('')
-          for (const char of words) {
-            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: char })}\n\n`))
-            await new Promise(resolve => setTimeout(resolve, 30))
-          }
-          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
-          controller.close()
-        }
-      })
-
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        }
-      })
-    }
-
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -128,6 +101,75 @@ serve(async (req) => {
       if (!conversationError && conversation) {
         context = conversation.uploads?.extracted_text || ''
       }
+    }
+
+    // 特殊処理：最初の「こんにちは」だけの入力に対して挨拶で返す
+    if (message.trim() === "こんにちは") {
+      // 資料からキーワードを抽出して質問を生成
+      const keywordPrompt = `以下の資料から最も重要なキーワードを1つ抽出してください。そのキーワードを使って「あなたは[キーワード]についてどう思いますか？」という質問を作成してください。
+
+資料の内容:
+${context}
+
+【重要】以下の形式で回答してください：
+- 「キーワード:」「質問:」などの文字列は含めない
+- 「あなたは[キーワード]についてどう思いますか？」という形式のみを返す
+- 資料がない場合は「あなたは学習についてどう思いますか？」を返す
+
+例：
+正しい形式: あなたはデジタルトランスフォーメーションについてどう思いますか？
+間違った形式: キーワード: DX 質問: あなたはDXについてどう思いますか？`
+
+      const keywordResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: keywordPrompt
+            }
+          ],
+          max_tokens: 100,
+          temperature: 0.7,
+        }),
+      })
+
+      let greetingResponse = "こんにちは！学習を始めましょう。"
+      
+      if (keywordResponse.ok) {
+        const keywordData = await keywordResponse.json()
+        const keywordQuestion = keywordData.choices?.[0]?.message?.content?.trim()
+        if (keywordQuestion) {
+          greetingResponse = `こんにちは！${keywordQuestion}`
+        }
+      }
+      
+      // Create streaming response for greeting
+      const stream = new ReadableStream({
+        async start(controller) {
+          const words = greetingResponse.split('')
+          for (const char of words) {
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: char })}\n\n`))
+            await new Promise(resolve => setTimeout(resolve, 30))
+          }
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
+        }
+      })
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        }
+      })
     }
     
     // 難易度ごとのインタビュースタイル

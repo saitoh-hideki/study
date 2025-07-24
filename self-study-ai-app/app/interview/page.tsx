@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
@@ -21,7 +21,7 @@ interface Message {
 interface Conversation {
   id: string
   user_id: string
-  upload_id: string
+  file_id: string
   title: string
   status: string
   created_at: string
@@ -50,6 +50,7 @@ export default function InterviewPage() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true) // 削除予定
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
   const [speechLoading, setSpeechLoading] = useState<string | null>(null) // 音声生成中のメッセージID
+  const [isGeneratingReview, setIsGeneratingReview] = useState(false) // レビュー生成中
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -112,6 +113,8 @@ export default function InterviewPage() {
 
     console.log('sendMessage called with:', inputMessage)
     console.log('conversation:', conversation)
+    console.log('conversation.id type:', typeof conversation.id)
+    console.log('conversation.id value:', conversation.id)
 
     setIsLoading(true)
     setStreamingMessage('')
@@ -135,6 +138,12 @@ export default function InterviewPage() {
 
         if (userError) {
           console.error('Error saving user message:', userError)
+          console.error('Error details:', {
+            conversation_id: conversation.id,
+            role: 'user',
+            content: inputMessage,
+            error: userError
+          })
           return
         }
 
@@ -167,14 +176,26 @@ export default function InterviewPage() {
         setMessages(prev => [...prev, aiMessage])
       } else {
         console.log('Processing as anonymous user')
-        // Anonymous user - save to localStorage
-        const userMessage = {
-          id: `user-${Date.now()}`,
-          conversation_id: conversation.id,
-          role: 'user' as const,
-          content: inputMessage,
-          audio_url: null,
-          created_at: new Date().toISOString()
+        // Anonymous user - save to database as well
+        const { data: userMessage, error: userError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            role: 'user',
+            content: inputMessage,
+          })
+          .select()
+          .single()
+
+        if (userError) {
+          console.error('Error saving user message (anonymous):', userError)
+          console.error('Error details:', {
+            conversation_id: conversation.id,
+            role: 'user',
+            content: inputMessage,
+            error: userError
+          })
+          return
         }
 
         setMessages(prev => [...prev, userMessage])
@@ -183,18 +204,26 @@ export default function InterviewPage() {
         // Generate AI response
         const aiResponse = await generateAIResponse(inputMessage, setStreamingMessage)
 
-        const aiMessage = {
-          id: `ai-${Date.now()}`,
-          conversation_id: conversation.id,
-          role: 'assistant' as const,
-          content: aiResponse,
-          audio_url: null,
-          created_at: new Date().toISOString()
+        // Save AI message to database
+        const { data: aiMessage, error: aiError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            role: 'assistant',
+            content: aiResponse,
+            audio_url: null,
+          })
+          .select()
+          .single()
+
+        if (aiError) {
+          console.error('Error saving AI message:', aiError)
+          return
         }
 
         setMessages(prev => [...prev, aiMessage])
 
-        // Save to localStorage
+        // Also save to localStorage for backup
         const allMessages = [...messages, userMessage, aiMessage]
         localStorage.setItem(`messages-${conversation.id}`, JSON.stringify(allMessages))
       }
@@ -412,10 +441,10 @@ export default function InterviewPage() {
       if (user) {
         // Authenticated user - check if conversation already exists for this file
         const { data: existingConversation, error: conversationError } = await supabase
-          .from('conversations')
+          .from('sessions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('upload_id', fileId)
+          .eq('file_id', fileId)
           .eq('status', 'active')
           .single()
 
@@ -429,10 +458,10 @@ export default function InterviewPage() {
         // Create new conversation if none exists
         if (!existingConversation) {
           const { data: newConversation, error: createError } = await supabase
-            .from('conversations')
+            .from('sessions')
             .insert({
               user_id: user.id,
-              upload_id: fileId,
+              file_id: fileId,
               title: 'AI Interview Session',
               status: 'active'
             })
@@ -447,38 +476,69 @@ export default function InterviewPage() {
           currentConversation = newConversation
         }
       } else {
-        // Anonymous user - create a temporary conversation ID
-        const sessionId = `anonymous-${Date.now()}`
-        currentConversation = {
-          id: sessionId,
-          user_id: null,
-          upload_id: fileId,
-          title: 'AI Interview Session (Anonymous)',
-          status: 'active',
-          created_at: new Date().toISOString()
+        // Anonymous user - create a real session in database
+        const { data: newConversation, error: createError } = await supabase
+          .from('sessions')
+          .insert({
+            user_id: null,
+            file_id: fileId,
+            title: 'AI Interview Session (Anonymous)',
+            status: 'active'
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating anonymous conversation:', createError)
+          return
         }
+
+        currentConversation = newConversation
       }
 
       setConversation(currentConversation)
       
-      if (user) {
-        // Only load messages from database for authenticated users
-        loadMessages(currentConversation.id)
-      } else {
-        // Load messages from localStorage for anonymous users
-        const savedMessages = localStorage.getItem(`messages-${currentConversation.id}`)
-        if (savedMessages) {
-          try {
-            const messages = JSON.parse(savedMessages)
-            setMessages(messages)
-          } catch (error) {
-            console.error('Error loading messages from localStorage:', error)
-          }
-        }
-      }
+      // Load messages from database for both authenticated and anonymous users
+      loadMessages(currentConversation.id)
 
     } catch (error) {
       console.error('Error initializing conversation:', error)
+    }
+  }
+
+  const generateReview = async () => {
+    if (!conversation || !selectedFile) return
+
+    setIsGeneratingReview(true)
+    try {
+      const response = await fetch('/api/generate-review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          fileId: selectedFile.id,
+          extractedText: selectedFile.extracted_text || '',
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error('Review generation error:', errorData)
+        throw new Error('レビューの生成に失敗しました')
+      }
+
+      const data = await response.json()
+      console.log('Review generated:', data)
+      
+      // レビュー生成成功後、レビューページに移動
+      router.push('/review')
+    } catch (error) {
+      console.error('Error generating review:', error)
+      alert('レビューの生成に失敗しました: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    } finally {
+      setIsGeneratingReview(false)
     }
   }
 
@@ -510,6 +570,34 @@ export default function InterviewPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {conversation && messages.length > 0 && (
+                <Button
+                  onClick={generateReview}
+                  disabled={isGeneratingReview}
+                  className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 hover:from-blue-100 hover:to-purple-100"
+                >
+                  {isGeneratingReview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      レビュー生成中...
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      AIレビューを生成
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/review')}
+                className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                レビュー一覧
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -645,6 +733,41 @@ export default function InterviewPage() {
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
+                    
+                    {/* Quick Actions */}
+                    {conversation && messages.length > 0 && (
+                      <div className="mt-4 flex items-center justify-center gap-3">
+                        <div className="text-xs text-gray-500">クイックアクション:</div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push('/review')}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        >
+                          <BookOpen className="h-3 w-3 mr-1" />
+                          レビュー一覧を見る
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={generateReview}
+                          disabled={isGeneratingReview}
+                          className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                        >
+                          {isGeneratingReview ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              生成中...
+                            </>
+                          ) : (
+                            <>
+                              <BookOpen className="h-3 w-3 mr-1" />
+                              新しいレビューを生成
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
