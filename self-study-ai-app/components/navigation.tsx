@@ -16,11 +16,11 @@ export function Navigation() {
   const pathname = usePathname()
 
   return (
-    <nav className="border-b">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="font-bold text-xl">
+            <Link href="/" className="font-bold text-xl text-blue-600">
               自学自習AI
             </Link>
             <div className="hidden md:flex items-center gap-6">
@@ -31,10 +31,10 @@ export function Navigation() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary',
+                      'flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md',
                       pathname === item.href
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground hover:bg-muted/50'
                     )}
                   >
                     <Icon className="h-4 w-4" />

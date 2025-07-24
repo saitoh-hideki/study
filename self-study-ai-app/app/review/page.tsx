@@ -264,7 +264,7 @@ export default function ReviewPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 pt-4">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             学習レビュー
           </h1>
