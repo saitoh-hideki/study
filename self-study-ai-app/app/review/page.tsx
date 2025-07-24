@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2 } from 'lucide-react'
+import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft } from 'lucide-react'
 
 interface Session {
   id: string
@@ -46,10 +46,26 @@ export default function ReviewPage() {
   const [showAllReviews, setShowAllReviews] = useState(false)
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
+    setIsClient(true)
     loadSessions()
+  }, [])
+
+  // URLパラメータの変更を監視
+  useEffect(() => {
+    const handleUrlChange = () => {
+      loadSessions()
+    }
+
+    // URLの変更を監視
+    window.addEventListener('popstate', handleUrlChange)
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange)
+    }
   }, [])
 
   useEffect(() => {
@@ -68,18 +84,63 @@ export default function ReviewPage() {
     setIsLoading(true)
     try {
       console.log('Loading sessions...')
-      const { data, error } = await supabase
+      
+      // URLパラメータからfile_idを取得（クライアントサイドのみ）
+      let fileId: string | null = null
+      if (isClient) {
+        const urlParams = new URLSearchParams(window.location.search)
+        fileId = urlParams.get('file_id')
+      }
+      
+      let query = supabase
         .from('sessions')
         .select('*')
         .order('created_at', { ascending: false })
 
+      // file_idが指定されている場合は、そのファイルのセッションのみを取得
+      if (fileId) {
+        query = query.eq('file_id', fileId)
+        console.log('Filtering sessions by file_id:', fileId)
+      }
+
+      const { data, error } = await query
+
       if (error) {
         console.error('Error loading sessions:', error)
+        // エラーの詳細をログに出力
+        if (error.message) {
+          console.error('Error message:', error.message)
+        }
+        if (error.details) {
+          console.error('Error details:', error.details)
+        }
         return
       }
 
-      console.log('Sessions loaded:', data)
-      setSessions(data || [])
+      // 空のセッション（file_idがnullまたは空）をフィルタリング
+      const validSessions = data?.filter(session => session.file_id && session.file_id.trim() !== '') || []
+      
+      // さらに、メッセージが存在するセッションのみを表示するフィルタリングを追加
+      const sessionsWithMessages = []
+      for (const session of validSessions) {
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('conversation_id', session.id)
+          .limit(1)
+        
+        if (messages && messages.length > 0) {
+          sessionsWithMessages.push(session)
+        }
+      }
+      
+
+      setSessions(sessionsWithMessages)
+      
+      // セッションが1つしかない場合は自動選択
+      if (sessionsWithMessages.length === 1) {
+        setSelectedSession(sessionsWithMessages[0])
+      }
     } catch (error) {
       console.error('Error loading sessions:', error)
     } finally {
@@ -89,7 +150,7 @@ export default function ReviewPage() {
 
   const loadMessages = async (sessionId: string) => {
     try {
-      console.log('Loading messages for session:', sessionId)
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -101,7 +162,7 @@ export default function ReviewPage() {
         return
       }
 
-      console.log('Messages loaded:', data)
+
       setMessages(data || [])
     } catch (error) {
       console.error('Error loading messages:', error)
@@ -260,6 +321,8 @@ export default function ReviewPage() {
     }
   }
 
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
@@ -271,6 +334,42 @@ export default function ReviewPage() {
           <p className="text-gray-600 max-w-2xl mx-auto">
             過去の学習セッションを振り返り、AIが生成したレビューで理解度を確認しましょう
           </p>
+          {isClient && (() => {
+            const urlParams = new URLSearchParams(window.location.search)
+            const fileId = urlParams.get('file_id')
+            
+            return fileId ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-700 font-medium">
+                      プレビューモード: 特定のファイルのセッションのみを表示中
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      {sessions.length}件のセッションが表示されています
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (isClient) {
+                          const newUrl = window.location.pathname
+                          window.history.pushState({}, '', newUrl)
+                          window.location.reload()
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      通常モードに戻る
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null
+          })()}
           <div className="flex justify-center gap-6 text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -298,6 +397,19 @@ export default function ReviewPage() {
             <CardContent>
               {isLoading ? (
                 <p className="text-sm text-muted-foreground">読み込み中...</p>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    {isClient ? (() => {
+                      const urlParams = new URLSearchParams(window.location.search)
+                      const fileId = urlParams.get('file_id')
+                      return fileId 
+                        ? 'このファイルの学習セッションが見つかりません'
+                        : '学習セッションがありません'
+                    })() : '学習セッションがありません'}
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {sessions.map((session) => (
@@ -306,7 +418,6 @@ export default function ReviewPage() {
                         variant={selectedSession?.id === session.id ? 'default' : 'outline'}
                         className="w-full justify-start text-left pr-12"
                         onClick={async () => {
-                          console.log('Session selected:', session)
                           setSelectedSession(session)
                           await loadMessages(session.id)
                           await loadReviews()
@@ -353,48 +464,25 @@ export default function ReviewPage() {
               <CardDescription>
                 {selectedSession ? selectedSession.title : 'セッションを選択してください'}
               </CardDescription>
-              {selectedSession && (
+              {selectedSession && reviews.length === 0 && (
                 <div className="flex gap-2">
-                  {reviews.length < 3 && (
-                    <Button
-                      onClick={generateReview}
-                      disabled={isGeneratingReview}
-                      className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 hover:from-blue-100 hover:to-purple-100"
-                    >
-                      {isGeneratingReview ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          レビュー生成中...
-                        </>
-                      ) : (
-                        <>
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          AIレビューを生成
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  {reviews.length >= 3 && (
-                    <Button
-                      onClick={generateReview}
-                      disabled={isGeneratingReview}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      {isGeneratingReview ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          生成中...
-                        </>
-                      ) : (
-                        <>
-                          <BookOpen className="h-3 w-3 mr-1" />
-                          追加レビュー生成
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={generateReview}
+                    disabled={isGeneratingReview}
+                    className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 hover:from-blue-100 hover:to-purple-100"
+                  >
+                    {isGeneratingReview ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        レビュー生成中...
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        AIレビューを生成
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </CardHeader>

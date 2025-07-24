@@ -323,6 +323,13 @@ ${reviewContent}
     const today = new Date()
     const title = `本日の学習レビュー - ${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
 
+    // Get user information from the session
+    const { data: sessionData } = await supabase
+      .from('sessions')
+      .select('user_id')
+      .eq('id', conversationId)
+      .single()
+
     // Save review to database
     console.log('Saving enhanced review to database...')
     const { data: savedReview, error: saveError } = await supabase
@@ -334,7 +341,7 @@ ${reviewContent}
         ai_generated: true,
         conversation_id: conversationId,
         file_id: fileId || null,
-        user_id: null // For anonymous users
+        user_id: sessionData?.user_id || null // Use the same user_id as the session
       })
       .select()
       .single()
