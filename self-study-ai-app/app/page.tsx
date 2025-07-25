@@ -12,50 +12,50 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left Content */}
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 text-primary rounded-full text-sm font-medium border border-primary/10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 text-sky-600 rounded-full text-sm font-medium border border-sky-200">
                 <Zap className="h-4 w-4" />
-                AI × 自学習
+                AI × Self-Learning
               </div>
               
               <div className="space-y-6">
-                <h1 className="heading-xl text-foreground">
-                  あなたの資料で、
+                <h1 className="text-5xl font-bold text-gray-900 leading-tight">
+                  Learn Deeply with
                   <br />
-                  <span className="text-primary">対話しながら深く学ぶ</span>
+                  <span className="text-sky-600">Your Own Material</span>
                 </h1>
                 
-                <p className="body-lg text-muted-foreground max-w-lg">
-                  PDFや記事をアップロードするだけ。AIが質問を投げかけ、理解を深め、記録まで残します。
+                <p className="text-xl text-gray-600 max-w-lg leading-relaxed">
+                  Upload PDFs and articles. AI asks questions, deepens understanding, and keeps records.
                 </p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild className="btn-primary">
+                <Button asChild className="bg-sky-600 hover:bg-sky-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl">
                   <Link href="/upload" className="flex items-center gap-2">
-                    学習をはじめる
-                    <ArrowRight className="h-4 w-4" />
+                    Start Learning
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="btn-secondary">
+                <Button asChild variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200">
                   <Link href="#demo" className="flex items-center gap-2">
-                    <Play className="h-4 w-4" />
-                    デモを見る
+                    <Play className="h-5 w-5" />
+                    Watch Demo
                   </Link>
                 </Button>
               </div>
               
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-8 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  無料で始められる
+                  Free to start
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  3分でセットアップ
+                  3-min setup
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  プライバシー保護
+                  Privacy protected
                 </div>
               </div>
             </div>
@@ -69,31 +69,31 @@ export default function Home() {
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <div className="flex-1"></div>
-                    <div className="text-xs text-muted-foreground">AI Interview</div>
+                    <div className="text-xs text-gray-500">AI Interview</div>
                   </div>
                   
                   <div className="space-y-3">
-                    <div className="bg-white rounded-lg p-4 border border-border/30">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <Brain className="h-4 w-4 text-primary" />
+                        <div className="w-8 h-8 bg-sky-50 rounded-full flex items-center justify-center">
+                          <Brain className="h-4 w-4 text-sky-600" />
                         </div>
-                        <div className="text-sm font-medium">AI アシスタント</div>
+                        <div className="text-sm font-medium text-gray-900">AI Assistant</div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        「生成AIの社会的影響について、どのような観点から考えていますか？」
+                      <p className="text-sm text-gray-600">
+                        "What perspectives do you consider when thinking about the social impact of generative AI?"
                       </p>
                     </div>
                     
-                    <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                    <div className="bg-sky-50 rounded-lg p-4 border border-sky-200">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center">
                           <Target className="h-4 w-4 text-white" />
                         </div>
-                        <div className="text-sm font-medium text-primary">あなた</div>
+                        <div className="text-sm font-medium text-sky-600">You</div>
                       </div>
-                      <p className="text-sm text-foreground">
-                        「生産性向上と雇用への影響の両面から考える必要がありますね...」
+                      <p className="text-sm text-gray-900">
+                        "I think we need to consider both productivity improvement and employment impact..."
                       </p>
                     </div>
                   </div>
@@ -101,17 +101,17 @@ export default function Home() {
               </div>
               
               {/* Floating elements */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl p-4 shadow-lg border border-border/30">
+              <div className="absolute -top-4 -right-4 bg-white rounded-xl p-4 shadow-lg border border-gray-200">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium">学習中</span>
+                  <span className="text-xs font-medium text-gray-900">Learning</span>
                 </div>
               </div>
               
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl p-3 shadow-lg border border-border/30">
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl p-3 shadow-lg border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <FileUp className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium">PDF アップロード済み</span>
+                  <FileUp className="h-4 w-4 text-sky-600" />
+                  <span className="text-xs font-medium text-gray-900">PDF Uploaded</span>
                 </div>
               </div>
             </div>
@@ -123,65 +123,65 @@ export default function Home() {
       <section className="py-20 px-6 bg-gray-50/50">
         <div className="container max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="heading-lg text-foreground mb-4">
-              3つのステップで完結
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Complete in 3 Simple Steps
             </h2>
-            <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
-              シンプルな流れで、誰でも効果的な学習ができます
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              A simple flow that enables effective learning for everyone
             </p>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-3">
-            <Card className="group hover:shadow-xl transition-all duration-300 border border-border/30 bg-white">
-              <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-100 transition-colors">
-                  <FileUp className="h-8 w-8 text-blue-600" />
+            <Card className="group hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="text-center pb-6 px-8 pt-8">
+                <div className="w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-sky-100 transition-all duration-300 group-hover:scale-110">
+                  <FileUp className="h-10 w-10 text-sky-600" />
                 </div>
-                <CardTitle className="heading-md">学習素材アップロード</CardTitle>
-                <CardDescription className="body-md">
-                  PDF・URLなど様々な素材に対応
+                <CardTitle className="text-2xl font-bold text-gray-900 mb-3">Upload Materials</CardTitle>
+                <CardDescription className="text-gray-600 text-lg">
+                  Supports PDF, URL, and various formats
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground leading-relaxed">
-                  AIが自動で読み込み、学習設計を最適化します。
-                  ドラッグ＆ドロップで簡単にアップロードできます。
+              <CardContent className="text-center px-8 pb-8">
+                <p className="text-gray-600 leading-relaxed">
+                  AI automatically reads and optimizes learning design.
+                  Simple drag & drop upload.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 border border-border/30 bg-white">
-              <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-green-100 transition-colors">
-                  <Mic className="h-8 w-8 text-green-600" />
+            <Card className="group hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="text-center pb-6 px-8 pt-8">
+                <div className="w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-sky-100 transition-all duration-300 group-hover:scale-110">
+                  <Mic className="h-10 w-10 text-sky-600" />
                 </div>
-                <CardTitle className="heading-md">音声インタビュー</CardTitle>
-                <CardDescription className="body-md">
-                  AIとの音声対話で理解を深める
+                <CardTitle className="text-2xl font-bold text-gray-900 mb-3">Voice Interview</CardTitle>
+                <CardDescription className="text-gray-600 text-lg">
+                  Deepen understanding through AI dialogue
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground leading-relaxed">
-                  音声認識と音声合成により、まるで講師と対話しているような
-                  学習体験を実現します。
+              <CardContent className="text-center px-8 pb-8">
+                <p className="text-gray-600 leading-relaxed">
+                  Speech recognition and synthesis create a learning experience
+                  like talking with a tutor.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 border border-border/30 bg-white">
-              <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-purple-100 transition-colors">
-                  <BookOpen className="h-8 w-8 text-purple-600" />
+            <Card className="group hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="text-center pb-6 px-8 pt-8">
+                <div className="w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-sky-100 transition-all duration-300 group-hover:scale-110">
+                  <BookOpen className="h-10 w-10 text-sky-600" />
                 </div>
-                <CardTitle className="heading-md">学習ログ記録</CardTitle>
-                <CardDescription className="body-md">
-                  すべての対話が自動で保存
+                <CardTitle className="text-2xl font-bold text-gray-900 mb-3">Learning Log</CardTitle>
+                <CardDescription className="text-gray-600 text-lg">
+                  All conversations automatically saved
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground leading-relaxed">
-                  すべての会話が記録され、あとから効率的に復習できます。
-                  苦手な部分を重点的に確認できます。
+              <CardContent className="text-center px-8 pb-8">
+                <p className="text-gray-600 leading-relaxed">
+                  All conversations are recorded for efficient review later.
+                  Focus on areas that need improvement.
                 </p>
               </CardContent>
             </Card>
@@ -193,50 +193,50 @@ export default function Home() {
       <section id="how-it-works" className="py-20 px-6">
         <div className="container max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="heading-lg text-foreground mb-4">
-              使い方
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              How It Works
             </h2>
-            <p className="body-lg text-muted-foreground">
-              3つのステップで学習を開始できます
+            <p className="text-xl text-gray-600 leading-relaxed">
+              Start learning in 3 simple steps
             </p>
           </div>
 
           <div className="space-y-8">
-            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-border/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex-shrink-0 w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-blue-600">1</span>
+            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <div className="flex-shrink-0 w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center">
+                <span className="text-3xl font-bold text-sky-600">1</span>
               </div>
               <div className="flex-1">
-                <h3 className="heading-md text-foreground mb-3">学習素材をアップロード</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  学びたいPDFや記事を読み込ませます。AIが内容を分析し、
-                  最適な学習プランを自動生成します。
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Upload Learning Materials</h3>
+                <p className="text-gray-600 leading-relaxed text-lg">
+                  Load PDFs or articles you want to learn. AI analyzes the content
+                  and automatically generates the optimal learning plan.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-border/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex-shrink-0 w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-green-600">2</span>
+            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <div className="flex-shrink-0 w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center">
+                <span className="text-3xl font-bold text-sky-600">2</span>
               </div>
               <div className="flex-1">
-                <h3 className="heading-md text-foreground mb-3">AIと対話スタート</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  音声・テキストで質問しながら理解を深めます。
-                  あなたの理解度に合わせて質問が変化します。
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Start AI Dialogue</h3>
+                <p className="text-gray-600 leading-relaxed text-lg">
+                  Deepen understanding through voice and text questions.
+                  Questions adapt to your comprehension level.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-border/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex-shrink-0 w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-purple-600">3</span>
+            <div className="flex items-center gap-8 p-8 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <div className="flex-shrink-0 w-20 h-20 bg-sky-50 rounded-2xl flex items-center justify-center">
+                <span className="text-3xl font-bold text-sky-600">3</span>
               </div>
               <div className="flex-1">
-                <h3 className="heading-md text-foreground mb-3">会話ログで復習</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  すべてのやり取りは保存され、あとから確認できます。
-                  学習の進捗や理解度を可視化します。
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Review with Chat Logs</h3>
+                <p className="text-gray-600 leading-relaxed text-lg">
+                  All interactions are saved and can be reviewed later.
+                  Visualize learning progress and understanding.
                 </p>
               </div>
             </div>
@@ -245,26 +245,26 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-gradient-to-br from-primary to-primary/80">
+      <section className="py-20 px-6 bg-gradient-to-br from-sky-600 to-sky-700">
         <div className="container max-w-4xl mx-auto text-center text-white">
-          <h2 className="heading-lg mb-6">
+          <h2 className="text-4xl font-bold mb-6">
             Ready to dive into AI-powered learning?
           </h2>
-          <p className="body-lg mb-10 opacity-90 max-w-2xl mx-auto">
+          <p className="text-xl mb-10 opacity-90 max-w-2xl mx-auto leading-relaxed">
             It's free, fast, and truly personalized. Start your learning journey today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild className="bg-white text-primary hover:bg-gray-50 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg">
+            <Button asChild className="bg-white text-sky-600 hover:bg-gray-50 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
               <Link href="/upload" className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5" />
-                無料で始める
+                Start Free
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl">
+            <Button asChild variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200">
               <Link href="#demo" className="flex items-center gap-2">
                 <Play className="h-5 w-5" />
-                デモを見る
+                Watch Demo
               </Link>
             </Button>
           </div>

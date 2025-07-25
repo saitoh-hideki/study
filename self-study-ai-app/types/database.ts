@@ -136,6 +136,67 @@ export interface Database {
           created_at?: string
         }
       }
+      five_why_trees: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string | null
+          conversation_id: string | null
+          topic: string
+          root_cause: string | null
+          insights: Json | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          conversation_id?: string | null
+          topic: string
+          root_cause?: string | null
+          insights?: Json | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          conversation_id?: string | null
+          topic?: string
+          root_cause?: string | null
+          insights?: Json | null
+          metadata?: Json | null
+        }
+      }
+      five_why_levels: {
+        Row: {
+          id: string
+          created_at: string
+          five_why_tree_id: string
+          level_number: number
+          question: string
+          answer: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          five_why_tree_id: string
+          level_number: number
+          question: string
+          answer: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          five_why_tree_id?: string
+          level_number?: number
+          question?: string
+          answer?: string
+          timestamp?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

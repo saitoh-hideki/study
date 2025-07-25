@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { FileUp, Mic, BookOpen, Settings, Sparkles } from 'lucide-react'
+import { FileUp, Mic, BookOpen, Settings, Sparkles, HelpCircle } from 'lucide-react'
 
 const navigation = [
-  { name: 'アップロード', href: '/upload', icon: FileUp, description: '学習素材をアップロード' },
-  { name: 'インタビュー', href: '/interview', icon: Mic, description: 'AIと対話学習' },
-  { name: 'レビュー', href: '/review', icon: BookOpen, description: '学習記録を確認' },
-  { name: '設定', href: '/settings', icon: Settings, description: 'アプリ設定' },
+  { name: 'Upload', href: '/upload', icon: FileUp, description: 'Upload learning materials' },
+  { name: 'Interview', href: '/interview', icon: Mic, description: 'AI-powered learning dialogue' },
+  { name: 'Review', href: '/review', icon: BookOpen, description: 'View learning records' },
+  { name: '5 Whys', href: '/five-why', icon: HelpCircle, description: '5 Whys analysis history' },
+  { name: 'Settings', href: '/settings', icon: Settings, description: 'App settings' },
 ]
 
 export function Navigation() {
@@ -20,8 +21,8 @@ export function Navigation() {
       <div className="container mx-auto px-6">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-12">
-            <Link href="/" className="flex items-center gap-3 font-bold text-xl text-foreground hover:text-primary transition-colors">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+            <Link href="/" className="flex items-center gap-3 font-bold text-xl text-foreground hover:text-sky-600 transition-colors">
+              <div className="w-8 h-8 bg-gradient-to-br from-sky-600 to-sky-700 rounded-lg flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <span className="font-semibold">Reflecta</span>
@@ -36,7 +37,7 @@ export function Navigation() {
                     className={cn(
                       'group relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg',
                       pathname === item.href
-                        ? 'text-primary bg-primary/5 border border-primary/10'
+                        ? 'text-sky-600 bg-sky-50 border border-sky-200'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     )}
                   >

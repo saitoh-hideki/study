@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
+import FiveWhyModal from '@/components/five-why-modal'
 
 interface Message {
   id: string
@@ -51,6 +52,10 @@ export default function InterviewPage() {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
   const [speechLoading, setSpeechLoading] = useState<string | null>(null) // 音声生成中のメッセージID
   const [isGeneratingReview, setIsGeneratingReview] = useState(false) // レビュー生成中
+  const [isFiveWhyModalOpen, setIsFiveWhyModalOpen] = useState(false) // 5ホワイモーダルの状態
+  const [selectedText, setSelectedText] = useState('') // 選択されたテキスト
+  const [showSelectionTooltip, setShowSelectionTooltip] = useState(false) // 選択ツールチップの表示
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }) // ツールチップの位置
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -77,6 +82,20 @@ export default function InterviewPage() {
       initializeConversation()
     }
   }, [supabase])
+
+  // グローバルな選択解除イベント
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (showSelectionTooltip) {
+        setShowSelectionTooltip(false)
+      }
+    }
+
+    document.addEventListener('click', handleGlobalClick)
+    return () => {
+      document.removeEventListener('click', handleGlobalClick)
+    }
+  }, [showSelectionTooltip])
 
   const initializeConversation = async () => {
     // This function is now deprecated - use initializeConversationForFile instead
@@ -310,7 +329,7 @@ export default function InterviewPage() {
       return fullResponse
     } catch (error) {
       console.error('Error generating AI response:', error)
-      return '申し訳ございません。エラーが発生しました。'
+      return 'Sorry, an error occurred.'
     }
   }
 
@@ -457,12 +476,31 @@ export default function InterviewPage() {
 
         // Create new conversation if none exists
         if (!existingConversation) {
+          // Get file name for the session title
+          let sessionTitle = 'AI Interview Session'
+          
+          try {
+            const { data: fileData, error: fileError } = await supabase
+              .from('uploaded_files')
+              .select('file_name')
+              .eq('id', fileId)
+              .maybeSingle()
+
+            if (fileError) {
+              console.error('Error getting file name:', fileError)
+            } else if (fileData?.file_name) {
+              sessionTitle = fileData.file_name.replace(/\.[^/.]+$/, '') // Remove file extension
+            }
+          } catch (error) {
+            console.error('Error getting file name:', error)
+          }
+
           const { data: newConversation, error: createError } = await supabase
             .from('sessions')
             .insert({
               user_id: user.id,
               file_id: fileId,
-              title: 'AI Interview Session',
+              title: sessionTitle,
               status: 'active'
             })
             .select()
@@ -477,12 +515,31 @@ export default function InterviewPage() {
         }
       } else {
         // Anonymous user - create a real session in database
+        // Get file name for the session title
+        let sessionTitle = 'AI Interview Session (Anonymous)'
+        
+        try {
+          const { data: fileData, error: fileError } = await supabase
+            .from('uploaded_files')
+            .select('file_name')
+            .eq('id', fileId)
+            .maybeSingle()
+
+          if (fileError) {
+            console.error('Error getting file name:', fileError)
+          } else if (fileData?.file_name) {
+            sessionTitle = fileData.file_name.replace(/\.[^/.]+$/, '') // Remove file extension
+          }
+        } catch (error) {
+          console.error('Error getting file name:', error)
+        }
+
         const { data: newConversation, error: createError } = await supabase
           .from('sessions')
           .insert({
             user_id: null,
             file_id: fileId,
-            title: 'AI Interview Session (Anonymous)',
+            title: sessionTitle,
             status: 'active'
           })
           .select()
@@ -526,7 +583,7 @@ export default function InterviewPage() {
       if (!response.ok) {
         const errorData = await response.text()
         console.error('Review generation error:', errorData)
-        throw new Error('レビューの生成に失敗しました')
+        throw new Error('Failed to generate review')
       }
 
       const data = await response.json()
@@ -536,7 +593,7 @@ export default function InterviewPage() {
       router.push('/review')
     } catch (error) {
       console.error('Error generating review:', error)
-      alert('レビューの生成に失敗しました: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      alert('Failed to generate review: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       setIsGeneratingReview(false)
     }
@@ -544,6 +601,40 @@ export default function InterviewPage() {
 
   const handleBack = () => {
     router.push('/upload')
+  }
+
+  // テキスト選択処理
+  const handleTextSelection = (event: React.MouseEvent) => {
+    // 少し遅延を入れて選択状態を確認
+    setTimeout(() => {
+      const selection = window.getSelection()
+      const selectedText = selection?.toString().trim()
+      
+      if (selectedText && selectedText.length > 0) {
+        setSelectedText(selectedText)
+        setTooltipPosition({ x: event.clientX, y: event.clientY })
+        setShowSelectionTooltip(true)
+      } else {
+        setShowSelectionTooltip(false)
+      }
+    }, 100)
+  }
+
+  // 5ホワイ分析を選択テキストで開始
+  const startFiveWhyWithSelection = () => {
+    setIsFiveWhyModalOpen(true)
+    setShowSelectionTooltip(false)
+  }
+
+  // 通常の5ホワイ分析を開始
+  const startFiveWhyNormal = () => {
+    setSelectedText('') // 選択テキストをクリア
+    setIsFiveWhyModalOpen(true)
+  }
+
+  // 選択ツールチップを非表示
+  const hideSelectionTooltip = () => {
+    setShowSelectionTooltip(false)
   }
 
   return (
@@ -557,34 +648,48 @@ export default function InterviewPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-border/30 px-6 py-4 mt-16">
+        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 px-6 py-4 mt-16">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  {selectedFile ? selectedFile.name : 'AIインタビュー'}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {selectedFile ? 'AIと対話しながら学習を深めましょう' : 'ファイルを選択してください'}
-                </p>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center shadow-sm">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    {selectedFile ? selectedFile.name : 'AI Interview'}
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    {selectedFile ? 'Deepen your learning through dialogue with AI' : 'Please select a file'}
+                  </p>
+                </div>
               </div>
+              
+              {/* Status Indicator */}
+              {selectedFile && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 border border-sky-200 rounded-full">
+                  <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-sky-700">Active Session</span>
+                </div>
+              )}
             </div>
+            
             <div className="flex items-center gap-3">
               {conversation && messages.length > 0 && (
                 <Button
                   onClick={generateReview}
                   disabled={isGeneratingReview}
-                  className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
+                  className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
                 >
                   {isGeneratingReview ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      レビュー生成中...
+                      Generating Review...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      AIレビューを生成
+                      Generate AI Review
                     </>
                   )}
                 </Button>
@@ -592,20 +697,29 @@ export default function InterviewPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={startFiveWhyNormal}
+                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                5 Whys Analysis
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => router.push('/review')}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
+                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                レビュー一覧
+                Review List
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBack}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
+                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                戻る
+                Back
               </Button>
             </div>
           </div>
@@ -615,17 +729,42 @@ export default function InterviewPage() {
         <div className="flex-1 flex flex-col">
           {!selectedFile ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto">
-                  <FileText className="h-10 w-10 text-gray-600" />
+              <div className="text-center space-y-8 max-w-md mx-auto px-6">
+                <div className="relative">
+                  <div className="w-24 h-24 bg-gradient-to-br from-sky-50 to-sky-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-sky-200">
+                    <FileText className="h-12 w-12 text-sky-600" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    <div className="w-2 h-2 bg-sky-600 rounded-full animate-pulse"></div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="heading-md text-foreground">
-                    ファイルを選択してください
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    No File Selected
                   </h3>
-                  <p className="body-md text-muted-foreground max-w-md">
-                    左側のサイドバーから学習ファイルを選択するか、新しいファイルを作成してください。
+                  <p className="text-gray-600 leading-relaxed">
+                    Select a learning file from the sidebar or upload a new document to start your AI-powered learning session.
                   </p>
+                  <div className="flex items-center justify-center gap-4 pt-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
+                      <span>Choose from existing files</span>
+                    </div>
+                    <div className="w-px h-4 bg-gray-300"></div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
+                      <span>Upload new content</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <Button
+                    onClick={handleBack}
+                    className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Go to Upload
+                  </Button>
                 </div>
               </div>
             </div>
@@ -634,23 +773,25 @@ export default function InterviewPage() {
               <div className="h-full flex flex-col">
                 {/* Messages Display */}
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-6 max-w-4xl mx-auto">
-                    {messages.map((message) => (
+                  <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+                    {messages.map((message, index) => (
                       <div
                         key={message.id}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-in`}
+                        style={{ animationDelay: `${index * 100}ms` }}
                       >
                         {message.role === 'assistant' && (
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                            <Brain className="h-4 w-4 text-gray-600" />
+                          <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <Brain className="h-4 w-4 text-sky-600" />
                           </div>
                         )}
                         <div
-                          className={`max-w-xs lg:max-w-md px-6 py-4 rounded-2xl shadow-sm ${
+                          className={`max-w-xs lg:max-w-md px-6 py-4 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
                             message.role === 'user'
-                              ? 'bg-gray-100 text-gray-900 shadow-md'
-                              : 'bg-white border border-gray-200 text-gray-900'
+                              ? 'bg-sky-100 text-gray-900 shadow-md hover:shadow-lg'
+                              : 'bg-white border border-gray-200 text-gray-900 hover:border-sky-200'
                           }`}
+                          onMouseUp={handleTextSelection}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <p className={`text-sm flex-1 leading-relaxed ${message.role === 'user' ? 'font-medium text-gray-900' : 'text-gray-900'}`}>{message.content}</p>
@@ -659,14 +800,14 @@ export default function InterviewPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => generateSpeech(message.content, message.id)}
-                                className="flex-shrink-0 mt-1 hover:bg-gray-100"
-                                title="音声で再生"
+                                className="flex-shrink-0 mt-1 hover:bg-sky-50"
+                                title="Play audio"
                                 disabled={speechLoading === message.id}
                               >
                                 {speechLoading === message.id ? (
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
                                 ) : (
-                                  <Volume2 className="h-4 w-4 text-gray-600" />
+                                  <Volume2 className="h-4 w-4 text-sky-600" />
                                 )}
                               </Button>
                             )}
@@ -678,27 +819,30 @@ export default function InterviewPage() {
                     {/* Streaming message */}
                     {streamingMessage && (
                       <div className="flex justify-start">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          <Brain className="h-4 w-4 text-gray-600" />
+                        <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                          <Brain className="h-4 w-4 text-sky-600" />
                         </div>
-                        <div className="bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm max-w-xs lg:max-w-md">
+                        <div 
+                          className="bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm max-w-xs lg:max-w-md"
+                          onMouseUp={handleTextSelection}
+                        >
                           <div className="flex items-start justify-between gap-3">
                             <p className="text-sm text-gray-900 flex-1 leading-relaxed">
                               {streamingMessage}
-                              <span className="animate-pulse text-gray-600">▋</span>
+                              <span className="animate-pulse text-sky-600">▋</span>
                             </p>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => generateSpeech(streamingMessage, 'streaming')}
-                              className="flex-shrink-0 mt-1 hover:bg-gray-100"
-                              title="音声で再生"
+                              className="flex-shrink-0 mt-1 hover:bg-sky-50"
+                              title="Play audio"
                               disabled={speechLoading === 'streaming'}
                             >
                               {speechLoading === 'streaming' ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
                               ) : (
-                                <Volume2 className="h-4 w-4 text-gray-600" />
+                                <Volume2 className="h-4 w-4 text-sky-600" />
                               )}
                             </Button>
                           </div>
@@ -708,13 +852,13 @@ export default function InterviewPage() {
                     
                     {isLoading && !streamingMessage && (
                       <div className="flex justify-start">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          <Brain className="h-4 w-4 text-gray-600" />
+                        <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                          <Brain className="h-4 w-4 text-sky-600" />
                         </div>
                         <div className="bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm">
                           <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-                            <p className="text-sm text-gray-600">AIが考え中...</p>
+                            <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
+                            <p className="text-sm text-sky-600">AI is thinking...</p>
                           </div>
                         </div>
                       </div>
@@ -725,14 +869,18 @@ export default function InterviewPage() {
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t border-border/30 p-6 bg-white/80 backdrop-blur-xl">
+                <div className="border-t border-gray-200 p-6 bg-white/80 backdrop-blur-xl">
                   <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center w-full px-4 py-3 bg-white border border-border/30 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                    <div className="flex items-center w-full px-4 py-3 bg-white border border-gray-300 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-sky-200 focus-within:border-sky-500 transition-all duration-200 hover:shadow-md">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={isRecording ? stopRecording : startRecording}
-                        className={`rounded-full mr-3 ${isRecording ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                        className={`rounded-full mr-3 transition-all duration-200 ${
+                          isRecording 
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-sm' 
+                            : 'text-gray-500 hover:text-sky-600 hover:bg-sky-50 hover:shadow-sm'
+                        }`}
                       >
                         <Mic className="h-4 w-4" />
                       </Button>
@@ -740,51 +888,72 @@ export default function InterviewPage() {
                         type="text"
                         value={inputMessage}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
-                        placeholder="メッセージを入力..."
+                        placeholder="Type your message..."
                         onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && sendMessage()}
-                        className="flex-1 outline-none text-sm bg-transparent"
+                        className="flex-1 outline-none text-sm bg-transparent placeholder-gray-400"
                       />
                       <Button 
                         onClick={sendMessage} 
                         disabled={isLoading || !inputMessage.trim()}
-                        className="ml-3 bg-gray-900 hover:bg-gray-800 text-white rounded-full p-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-3 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-2 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
                     
                     {/* Quick Actions */}
-                    {conversation && messages.length > 0 && (
-                      <div className="mt-4 flex items-center justify-center gap-6">
-                        <div className="text-xs text-muted-foreground font-medium">クイックアクション:</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => router.push('/review')}
-                          className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-                        >
-                          <BookOpen className="h-3 w-3 mr-1" />
-                          レビュー一覧を見る
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={generateReview}
-                          disabled={isGeneratingReview}
-                          className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-                        >
-                          {isGeneratingReview ? (
+                    {selectedFile && (
+                      <div className="mt-6 flex items-center justify-center">
+                        <div className="bg-gray-50 border border-gray-200 rounded-2xl px-6 py-3 flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-sky-500 rounded-full"></div>
+                            <span className="text-xs font-medium text-gray-700">Quick Actions</span>
+                          </div>
+                          <div className="w-px h-4 bg-gray-300"></div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={startFiveWhyNormal}
+                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                          >
+                            <HelpCircle className="h-3 w-3 mr-1" />
+                            5 Whys Analysis
+                          </Button>
+                          <div className="w-px h-4 bg-gray-300"></div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push('/review')}
+                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                          >
+                            <BookOpen className="h-3 w-3 mr-1" />
+                            View Review List
+                          </Button>
+                          {conversation && messages.length > 0 && (
                             <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              生成中...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              新しいレビューを生成
+                              <div className="w-px h-4 bg-gray-300"></div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={generateReview}
+                                disabled={isGeneratingReview}
+                                className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                              >
+                                {isGeneratingReview ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Generating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Generate New Review
+                                  </>
+                                )}
+                              </Button>
                             </>
                           )}
-                        </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -794,6 +963,49 @@ export default function InterviewPage() {
           )}
         </div>
       </div>
+
+      {/* 5ホワイモーダル */}
+      <FiveWhyModal
+        isOpen={isFiveWhyModalOpen}
+        onClose={() => setIsFiveWhyModalOpen(false)}
+        initialTopic={selectedText}
+        onSendToChat={(summary) => {
+          setInputMessage(summary)
+          setIsFiveWhyModalOpen(false)
+        }}
+      />
+
+      {/* テキスト選択ツールチップ */}
+      {showSelectionTooltip && (
+        <div
+          className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-xl p-3 animate-fade-in"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y - 60,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
+            <Button
+              size="sm"
+              onClick={startFiveWhyWithSelection}
+              className="bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-sm transition-all duration-200 hover:shadow-md"
+            >
+              <HelpCircle className="h-3 w-3 mr-1" />
+              Start 5 Whys Analysis
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ツールチップを非表示にするためのオーバーレイ */}
+      {showSelectionTooltip && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={hideSelectionTooltip}
+        />
+      )}
     </div>
   )
 } 
