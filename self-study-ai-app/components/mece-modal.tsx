@@ -22,6 +22,7 @@ import {
   CheckSquare
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { MECEGeneratingSkeleton } from './mece-skeleton'
 
 interface MECECategory {
   id: string
@@ -422,7 +423,9 @@ Through this MECE analysis, I have structurally organized the overall picture of
             </div>
 
             {/* Categories */}
-            {map.structure.categories.length > 0 && (
+            {isGenerating ? (
+              <MECEGeneratingSkeleton />
+            ) : map.structure.categories.length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

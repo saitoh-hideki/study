@@ -4,12 +4,18 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
 import FiveWhyModal from '@/components/five-why-modal'
 import MECEModal from '@/components/mece-modal'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Message {
   id: string
@@ -814,24 +820,29 @@ export default function InterviewPage() {
                   )}
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={startFiveWhyNormal}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-              >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                5 Whys Analysis
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={startMECEAnalysis}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                MECE Analysis
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Analyst
+                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={startFiveWhyNormal}>
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    5 Whys Analyst
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={startMECEAnalysis}>
+                    <Layers className="h-4 w-4 mr-2" />
+                    MECE Analyst
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="outline"
                 size="sm"
