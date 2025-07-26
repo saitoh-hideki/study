@@ -275,9 +275,9 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
 
   return (
     <div className="w-72 bg-gray-50 border-r border-gray-200 h-full flex flex-col">
-      <div className="p-5 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
         <div 
-          className="flex items-center justify-between mb-3 group"
+          className="flex items-center justify-between mb-4 group"
           onMouseEnter={() => {
             setIsHoveringHeader(true)
             setShowBulkActions(true)
@@ -289,40 +289,43 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
         >
           <div className="flex items-center justify-between flex-1">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Learning Files</h2>
-              <p className="text-xs text-gray-500 mt-1">
-                {files.length} files
+              <h2 className="text-xl font-bold text-gray-900">
+                Learning Files
+              </h2>
+              <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                <FolderOpen className="h-3 w-3 text-gray-400" />
+                {files.length} files available
               </p>
             </div>
             {showBulkActions && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={selectAllFiles}
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                   title="Select all"
                 >
-                  <CheckSquare className="h-3 w-3" />
+                  <CheckSquare className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={deselectAllFiles}
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                   title="Deselect all"
                 >
-                  <Square className="h-3 w-3" />
+                  <Square className="h-4 w-4" />
                 </Button>
                 {selectedFiles.size > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={deleteSelectedFiles}
-                    className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                     title={`Delete ${selectedFiles.size} files`}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
@@ -332,9 +335,9 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
             variant="ghost"
             size="sm"
             onClick={() => setShowNewFileForm(true)}
-            className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+            className="h-9 w-9 p-0 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-all duration-200"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </Button>
         </div>
 
@@ -387,12 +390,14 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
               <div
                 key={file.id}
                 className={`group relative p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors ${
-                  selectedFileId === file.id ? 'bg-blue-50 border border-blue-200' : ''
+                  selectedFileId === file.id ? 'bg-sky-50 border border-sky-200' : ''
                 }`}
                 onClick={() => onFileSelect(file)}
               >
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-900 truncate">
+                  <h3 className={`text-sm font-medium truncate ${
+                    selectedFileId === file.id ? 'text-sky-600' : 'text-gray-900'
+                  }`}>
                     {editingFileId === file.id ? (
                       <Input
                         value={editingFileName}
@@ -420,13 +425,13 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
                         }}
                         className={`transition-all duration-200 rounded-lg ${
                           selectedFiles.has(file.id)
-                            ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                            ? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+                            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-sky-600 hover:bg-sky-50'
                         }`}
                         title={selectedFiles.has(file.id) ? 'Deselect' : 'Select for deletion'}
                       >
                         {selectedFiles.has(file.id) ? (
-                          <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                          <div className="w-3 h-3 bg-sky-600 rounded-sm"></div>
                         ) : (
                           <div className="w-3 h-3 border border-gray-400 rounded-sm"></div>
                         )}

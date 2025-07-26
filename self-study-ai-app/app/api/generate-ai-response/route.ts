@@ -3,16 +3,28 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { message, conversationId, fileId, difficulty } = body
+    const { message, conversationId, fileId, difficulty, messages, type } = body
 
-    console.log('API Request:', { message, conversationId, fileId, difficulty })
+    console.log('API Request:', { message, conversationId, fileId, difficulty, messages, type })
 
-    if (!message || !conversationId) {
-      console.error('Missing required fields:', { message: !!message, conversationId: !!conversationId })
-      return NextResponse.json(
-        { error: 'Message and conversationId are required' },
-        { status: 400 }
-      )
+    // 5 Whys Analysisの場合はmessagesを使用
+    if (type === 'five-why-question') {
+      if (!messages || !Array.isArray(messages)) {
+        console.error('Missing or invalid messages array for 5 Whys')
+        return NextResponse.json(
+          { error: 'Messages array is required for 5 Whys analysis' },
+          { status: 400 }
+        )
+      }
+    } else {
+      // 通常のチャットの場合は従来のバリデーション
+      if (!message || !conversationId) {
+        console.error('Missing required fields:', { message: !!message, conversationId: !!conversationId })
+        return NextResponse.json(
+          { error: 'Message and conversationId are required' },
+          { status: 400 }
+        )
+      }
     }
 
     // Call Supabase Edge Function
@@ -32,12 +44,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const requestBody = {
-      message,
-      conversationId,
-      fileId,
-      difficulty: difficulty || 'normal',
-    }
+    // 5 Whys Analysisの場合は異なるリクエストボディを使用
+    const requestBody = type === 'five-why-question' 
+      ? { messages, type }
+      : {
+          message,
+          conversationId,
+          fileId,
+          difficulty: difficulty || 'normal',
+        }
 
     console.log('Calling Edge Function with:', requestBody)
 

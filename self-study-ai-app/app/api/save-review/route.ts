@@ -14,20 +14,11 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
-      )
-    }
-
-    // Save review to database
+    // Save review to database (no authentication required)
     const { data: review, error: saveError } = await supabase
       .from('reviews')
       .insert({
-        user_id: user.id,
+        user_id: null, // No authentication required
         conversation_id: conversationId,
         title,
         content,

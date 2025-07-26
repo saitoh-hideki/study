@@ -243,7 +243,7 @@ export default function FiveWhyPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">5 Whys Analysis History</h1>
+              <h1 className="text-3xl font-bold text-sky-600">5 Whys Analysis History</h1>
               <p className="text-gray-600 mt-2">Deep-dive analysis results for root cause identification</p>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function FiveWhyPage() {
                         ) : (
                           <>
                             <Trash2 className="h-3 w-3 mr-1" />
-                            Delete Selected ({selectedTrees.size})
+                            Delete Selected
                           </>
                         )}
                       </Button>
@@ -322,8 +322,8 @@ export default function FiveWhyPage() {
                         className="group relative"
                       >
                         <div
-                          className={`p-4 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
-                            selectedTree?.id === tree.id ? 'bg-sky-50 border-l-4 border-l-sky-500' : ''
+                          className={`p-4 border-b border-gray-100 cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
+                            selectedTree?.id === tree.id ? 'bg-gradient-to-r from-sky-50 to-blue-50 border-l-4 border-l-sky-500' : ''
                           } ${selectedTrees.has(tree.id) ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
                         >
                           <div className="flex items-start justify-between">
@@ -331,15 +331,15 @@ export default function FiveWhyPage() {
                               className="flex-1 min-w-0"
                               onClick={() => setSelectedTree(tree)}
                             >
-                              <h3 className="text-sm font-medium text-gray-900 truncate">
+                              <h3 className="text-sm font-semibold text-gray-900 truncate">
                                 {tree.topic}
                               </h3>
                               <p className="text-xs text-gray-500 mt-1">
                                 {formatDate(tree.created_at)}
                               </p>
                               <div className="flex items-center gap-2 mt-2">
-                                <Brain className="h-3 w-3 text-sky-600" />
-                                <span className="text-xs text-gray-600">
+                                <HelpCircle className="h-3 w-3 text-sky-600" />
+                                <span className="text-xs text-gray-600 font-medium">
                                   {tree.five_why_levels.length} levels
                                 </span>
                               </div>
@@ -354,15 +354,15 @@ export default function FiveWhyPage() {
                                 }}
                                 className={`transition-all duration-200 rounded-lg ${
                                   selectedTrees.has(tree.id)
-                                    ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                                    : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                                    ? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+                                    : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-sky-600 hover:bg-sky-50'
                                 }`}
                                 title={selectedTrees.has(tree.id) ? 'Deselect' : 'Select for deletion'}
                               >
                                 {selectedTrees.has(tree.id) ? (
-                                  <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                                  <div className="w-3 h-3 bg-sky-600 rounded-sm shadow-sm"></div>
                                 ) : (
-                                  <div className="w-3 h-3 border border-gray-400 rounded-sm"></div>
+                                  <div className="w-3 h-3 border-2 border-gray-400 rounded-sm"></div>
                                 )}
                               </Button>
                               <Button
@@ -406,49 +406,65 @@ export default function FiveWhyPage() {
                           {formatDate(selectedTree.created_at)}
                         </CardDescription>
                       </div>
-                                           <div className="flex items-center gap-2">
-                       <Brain className="h-5 w-5 text-sky-600" />
-                       <span className="text-sm text-gray-600">
-                         {selectedTree.five_why_levels.length} levels
-                       </span>
-                     </div>
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className="h-5 w-5 text-sky-600" />
+                        <span className="text-sm text-gray-600">
+                          {selectedTree.five_why_levels.length} levels
+                        </span>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-y-auto">
                     <div className="space-y-6">
                       {/* Root Cause */}
-                                           {selectedTree.root_cause && (
-                       <div className="bg-sky-50 rounded-lg p-4">
-                         <h4 className="text-lg font-semibold text-gray-900 mb-2">Root Cause</h4>
-                         <p className="text-gray-900">{selectedTree.root_cause}</p>
-                       </div>
-                     )}
+                      {selectedTree.root_cause && (
+                        <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl p-6 border border-sky-200">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+                              <Brain className="h-4 w-4 text-sky-600" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-gray-900">Root Cause</h4>
+                          </div>
+                          <p className="text-gray-900 leading-relaxed">{selectedTree.root_cause}</p>
+                        </div>
+                      )}
 
-                     {/* Five Why Levels */}
-                     <div className="space-y-4">
-                       <h3 className="text-lg font-semibold text-gray-900">Analysis Results</h3>
+                      {/* Five Why Levels */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-900">Analysis Results</h3>
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <HelpCircle className="h-4 w-4" />
+                            <span>5 Whys Process</span>
+                          </div>
+                        </div>
                         {selectedTree.five_why_levels
                           .sort((a, b) => a.level_number - b.level_number)
                           .map((level) => (
-                            <div key={level.id} className="bg-gray-50 rounded-lg p-4">
+                            <div key={level.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
                               <div className="flex items-start gap-4">
-                                <div className="flex-1 space-y-2">
-                                                                     <div>
-                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                       Question
-                                     </label>
-                                     <p className="text-sm text-gray-900 bg-white p-3 rounded border">
-                                       {level.question}
-                                     </p>
-                                   </div>
-                                   <div>
-                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                       Answer
-                                     </label>
-                                     <p className="text-sm text-gray-900 bg-white p-3 rounded border">
-                                       {level.answer}
-                                     </p>
-                                   </div>
+                                <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-semibold text-sky-600">{level.level_number}</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Question {level.level_number}
+                                    </label>
+                                    <p className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg border border-gray-200 leading-relaxed">
+                                      {level.question}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Answer
+                                    </label>
+                                    <p className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg border border-gray-200 leading-relaxed">
+                                      {level.answer}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -459,16 +475,11 @@ export default function FiveWhyPage() {
                 </Card>
               ) : (
                 <Card className="shadow-lg border-0 h-[calc(100vh-200px)] flex flex-col">
-                  <CardContent className="p-8 flex-1 flex items-center justify-center">
-                                         <div className="text-center">
-                       <HelpCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                       <h3 className="text-lg font-medium text-gray-900 mb-2">
-                         Select an Analysis
-                       </h3>
-                       <p className="text-gray-600">
-                         Choose an analysis from the left list to view details
-                       </p>
-                     </div>
+                  <CardContent className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <HelpCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Select an analysis to view details</p>
+                    </div>
                   </CardContent>
                 </Card>
               )}

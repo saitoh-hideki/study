@@ -360,7 +360,7 @@ Through this MECE analysis, I have structurally organized the overall picture of
               <Brain className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">MECE Analysis</h2>
+              <h2 className="text-2xl font-bold text-sky-600">MECE Analysis</h2>
               <p className="text-sm text-gray-600">Structurally classify themes and think about countermeasures</p>
             </div>
           </div>

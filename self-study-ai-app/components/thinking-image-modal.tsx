@@ -185,11 +185,11 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-sm">
               <Image className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Thinking Image</h2>
+              <h2 className="text-2xl font-bold text-sky-600">Thinking Image</h2>
               <p className="text-sm text-gray-600">Visualize your thoughts and ideas</p>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
                     onClick={extractThemeFromConversation}
                     variant="outline"
                     size="sm"
-                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                    className="text-sky-600 border-sky-300 hover:bg-sky-50"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
                     Extract from Conversation
@@ -270,7 +270,7 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
               <Button
                 onClick={generateImage}
                 disabled={isGenerating || !theme.trim()}
-                className="px-10 py-4 text-lg font-semibold bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-2xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                className="px-10 py-4 text-lg font-semibold bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white rounded-2xl shadow-lg transition-all duration-200 transform hover:scale-105"
               >
                 {isGenerating ? (
                   <>
@@ -300,7 +300,7 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
                       disabled={isGenerating}
                       variant="outline"
                       size="sm"
-                      className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                      className="text-sky-600 border-sky-300 hover:bg-sky-50"
                     >
                       {isGenerating ? (
                         <>
@@ -323,8 +323,8 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
                         key={index}
                         className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
                           selectedImage === imageUrl
-                            ? 'border-purple-500 shadow-lg'
-                            : 'border-gray-200 hover:border-purple-300'
+                            ? 'border-sky-500 shadow-lg'
+                            : 'border-gray-200 hover:border-sky-300'
                         }`}
                         onClick={() => setSelectedImage(imageUrl)}
                       >
@@ -334,7 +334,7 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
                           className="w-full h-48 object-cover"
                         />
                         {selectedImage === imageUrl && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center">
                             <div className="w-3 h-3 bg-white rounded-full"></div>
                           </div>
                         )}
@@ -351,7 +351,7 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
                 <div className="flex gap-2">
                   <Button
                     onClick={saveImage}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    className="bg-sky-600 hover:bg-sky-700 text-white"
                     disabled={!title.trim()}
                   >
                     <Save className="h-4 w-4 mr-2" />

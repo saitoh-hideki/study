@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, Plus, Minus, Save, Loader2, MessageSquare } from 'lucide-react'
+import { X, Plus, Minus, Save, Loader2, MessageSquare, HelpCircle, Target, Sparkles, Brain } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface FiveWhyLevel {
@@ -43,6 +43,7 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
   const [isStarted, setIsStarted] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [streamingQuestions, setStreamingQuestions] = useState<{ [key: number]: string }>({})
+  const [activeLevel, setActiveLevel] = useState<number>(0)
 
   const [supabase, setSupabase] = useState<any>(null)
 
@@ -163,9 +164,20 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
 
   // スタートボタンで5ホワイ分析を開始
   const startAnalysis = async () => {
+    if (!tree.topic.trim()) return
+
     setIsStarted(true)
+    setActiveLevel(1)
     setStreamingQuestions({})
     
+    // 最初のレベルに自動スクロール
+    setTimeout(() => {
+      const firstLevel = document.getElementById('level-1')
+      if (firstLevel) {
+        firstLevel.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+
     // 最初の質問をストリーミング形式で表示
     setTimeout(() => {
       generateStreamingQuestion(1)
@@ -174,8 +186,11 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
 
   // 質問をストリーミング形式で生成
   const generateStreamingQuestion = async (levelNumber: number) => {
+    if (!tree.topic.trim()) return
+
+    setActiveLevel(levelNumber)
     setStreamingQuestions(prev => ({ ...prev, [levelNumber]: '' }))
-    
+
     try {
       let question = ''
       if (levelNumber === 1) {
@@ -195,8 +210,18 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
         setStreamingQuestions(prev => ({ ...prev, [levelNumber]: currentQuestion }))
         await new Promise(resolve => setTimeout(resolve, 50))
       }
+
+      // スクロールをアクティブレベルに移動
+      setTimeout(() => {
+        const activeElement = document.getElementById(`level-${levelNumber}`)
+        if (activeElement) {
+          activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+
     } catch (error) {
       console.error('質問生成エラー:', error)
+      setStreamingQuestions(prev => ({ ...prev, [levelNumber]: 'Error generating question' }))
     }
   }
 
@@ -228,7 +253,8 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
   // 次の質問を生成する関数
   const generateNextQuestion = (currentLevel: number) => {
     if (currentLevel < 4) {
-      generateStreamingQuestion(currentLevel + 1)
+      const nextLevel = currentLevel + 1
+      generateStreamingQuestion(nextLevel)
     }
   }
 
@@ -259,39 +285,52 @@ Let's discuss this analysis result in more detail.`
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">5 Whys Analysis</h2>
-            <p className="text-sm text-gray-600">Deep dive into the root cause of problems</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden border border-gray-100">
+        {/* Header */}
+        <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-sm">
+              <HelpCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-sky-600">5 Whys Analysis</h2>
+              <p className="text-sm text-gray-600">Deep dive into the root cause of problems</p>
+            </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="space-y-6">
+        <div className="p-8 overflow-y-auto max-h-[calc(95vh-200px)]">
+          <div className="space-y-8">
             {/* Topic Input */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Analysis Topic</CardTitle>
-                <CardDescription>
-                  Enter the challenge or problem you want to analyze
-                </CardDescription>
+            <Card className="border-2 border-gray-100 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                    <Target className="h-4 w-4 text-sky-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Analysis Topic</CardTitle>
+                    <CardDescription>
+                      Enter the challenge or problem you want to analyze
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Input
                   value={tree.topic}
                   onChange={(e) => setTree(prev => ({ ...prev, topic: e.target.value }))}
                   placeholder="Sales are not increasing"
-                  className="text-lg"
+                  className="text-lg border-gray-200 focus:border-sky-400 focus:ring-sky-400"
                 />
               </CardContent>
             </Card>
@@ -301,8 +340,10 @@ Let's discuss this analysis result in more detail.`
               <div className="flex justify-center">
                 <Button
                   onClick={startAnalysis}
-                  className="px-8 py-3 text-lg font-semibold"
+                  disabled={!tree.topic.trim()}
+                  className="px-10 py-4 text-lg font-semibold bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white rounded-2xl shadow-lg transition-all duration-200 transform hover:scale-105"
                 >
+                  <Sparkles className="h-5 w-5 mr-3" />
                   Start Analysis
                 </Button>
               </div>
@@ -310,28 +351,33 @@ Let's discuss this analysis result in more detail.`
 
             {/* Five Why Levels */}
             {isStarted && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">5 Whys Analysis</h3>
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                    <HelpCircle className="h-4 w-4 text-sky-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">5 Whys Analysis Process</h3>
+                </div>
                 
                 {tree.levels.map((level, index) => (
-                  <Card key={level.level_number} className="border-2 border-gray-100">
-                    <CardHeader className="pb-3">
+                  <Card key={level.level_number} className="border-2 border-gray-100 hover:border-sky-200 transition-all duration-200 shadow-sm" id={`level-${level.level_number}`}>
+                    <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <CardTitle className="text-base">Why?</CardTitle>
+                          <CardTitle className="text-lg">Why?</CardTitle>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Question
                         </label>
-                        <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded border">
+                        <div className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg border border-gray-200 leading-relaxed">
                           {streamingQuestions[level.level_number] ? (
                             <>
                               {streamingQuestions[level.level_number]}
-                              <span className="animate-pulse text-gray-600">▋</span>
+                              <span className="animate-pulse text-sky-600">▋</span>
                             </>
                           ) : (
                             index === 0 
@@ -346,12 +392,12 @@ Let's discuss this analysis result in more detail.`
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Answer
                         </label>
-                        <div className="flex gap-2">
-                                                  <Input
-                          value={level.answer}
-                          onChange={(e) => updateLevel(level.level_number, 'answer', e.target.value)}
-                          placeholder="Enter your answer"
-                          className="text-sm flex-1"
+                        <div className="flex gap-3">
+                          <Input
+                            value={level.answer}
+                            onChange={(e) => updateLevel(level.level_number, 'answer', e.target.value)}
+                            placeholder="Enter your answer"
+                            className="text-sm flex-1 border-gray-200 focus:border-sky-400 focus:ring-sky-400"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter' && level.answer.trim()) {
                                 generateNextQuestion(level.level_number)
@@ -362,7 +408,7 @@ Let's discuss this analysis result in more detail.`
                             onClick={() => generateNextQuestion(level.level_number)}
                             disabled={!level.answer.trim() || level.level_number >= 4}
                             size="sm"
-                            className="bg-sky-500 hover:bg-sky-600 text-white"
+                            className="bg-sky-600 hover:bg-sky-700 text-white rounded-xl px-4"
                           >
                             Why!
                           </Button>
@@ -373,15 +419,22 @@ Let's discuss this analysis result in more detail.`
                 ))}
 
                 {/* Root Cause */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Root Cause</CardTitle>
-                    <CardDescription>
-                      Root cause automatically identified from 5 Whys analysis
-                    </CardDescription>
+                <Card className="border-2 border-gray-100 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                        <Brain className="h-4 w-4 text-sky-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Root Cause</CardTitle>
+                        <CardDescription>
+                          Root cause automatically identified from 5 Whys analysis
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded border">
+                    <div className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg border border-gray-200 leading-relaxed">
                       {tree.root_cause || 'Will be automatically set when you enter answers'}
                     </div>
                   </CardContent>
@@ -391,11 +444,12 @@ Let's discuss this analysis result in more detail.`
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-8 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isSaving}
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl"
           >
             Cancel
           </Button>
@@ -404,17 +458,17 @@ Let's discuss this analysis result in more detail.`
               variant="outline"
               onClick={sendToChat}
               disabled={isSaving || !tree.topic.trim()}
-              className="border-green-300 text-green-700 hover:bg-green-50"
+              className="border-green-300 text-green-700 hover:bg-green-50 rounded-xl"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Send to Chat
             </Button>
           )}
-                      <Button
-              onClick={saveTree}
-              disabled={isSaving || !tree.topic.trim() || !isStarted || tree.levels.filter(level => level.answer.trim()).length === 0}
-              className="bg-sky-600 hover:bg-sky-700"
-            >
+          <Button
+            onClick={saveTree}
+            disabled={isSaving || !tree.topic.trim() || !isStarted || tree.levels.filter(level => level.answer.trim()).length === 0}
+            className="bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-sm"
+          >
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

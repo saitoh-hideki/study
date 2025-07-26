@@ -186,6 +186,7 @@ export default function ReviewPage() {
         .from('reviews')
         .select('*')
         .eq('conversation_id', selectedSession?.id)
+        .is('user_id', null) // Only load reviews without authentication
 
       if (error) {
         console.error('Error loading reviews:', error)
@@ -435,7 +436,7 @@ export default function ReviewPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Learning Review</h1>
+              <h1 className="text-3xl font-bold text-sky-600">Learning Review</h1>
               <p className="text-gray-600 mt-2">Review past learning sessions and verify understanding with AI-generated reviews</p>
             </div>
           </div>
@@ -514,10 +515,11 @@ export default function ReviewPage() {
             {/* Left Sidebar - Sessions List */}
             <div className="lg:col-span-1">
               <Card className="shadow-lg border-0 h-[calc(100vh-200px)] flex flex-col">
-                <CardHeader className="flex-shrink-0">
+                <CardHeader className="flex-shrink-0 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg text-gray-900">Session List</CardTitle>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">📚 Sessions</div>
+                      <CardTitle className="text-lg text-gray-900">Sessions</CardTitle>
                       <CardDescription>
                         {sessions.length} sessions
                       </CardDescription>
@@ -550,7 +552,7 @@ export default function ReviewPage() {
                       <Loader2 className="h-6 w-6 animate-spin text-sky-600" />
                     </div>
                   ) : (
-                    <div>
+                    <div className="py-2">
                       {sessions.map((session) => (
                         <div
                           key={session.id}
@@ -653,54 +655,7 @@ export default function ReviewPage() {
                         </span>
                       </div>
                     </div>
-                    {reviews.length === 0 && (
-                      <div className="flex gap-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              disabled={isGeneratingReview}
-                              className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all duration-200"
-                            >
-                              {isGeneratingReview ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generating Review...
-                                </>
-                              ) : (
-                                <>
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Generate Review
-                                  <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                                </>
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem onClick={() => generateReview('normal')}>
-                              <BookOpen className="h-4 w-4 mr-2" />
-                              <div>
-                                <div className="font-medium">通常のレビュー</div>
-                                <div className="text-xs text-gray-500">学習内容の総合的な分析</div>
-                              </div>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => generateReview('conversation')}>
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              <div>
-                                <div className="font-medium">会話ヒストリー</div>
-                                <div className="text-xs text-gray-500">対話の流れと理解度の分析</div>
-                              </div>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => generateReview('learning')}>
-                              <Brain className="h-4 w-4 mr-2" />
-                              <div>
-                                <div className="font-medium">学習ヒストリー</div>
-                                <div className="text-xs text-gray-500">学習プロセスと成長の記録</div>
-                              </div>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
+
                   </CardHeader>
                   <CardContent className="flex-1 overflow-y-auto">
                     <div className="space-y-6">

@@ -279,7 +279,7 @@ ${chapter.content}
             onClick={() => setShowAIChat(!showAIChat)}
             className={`rounded-full w-14 h-14 shadow-lg transition-all duration-200 ${
               showAIChat 
-                ? 'bg-sky-600 hover:bg-sky-700 text-white' 
+                ? 'bg-sky-400 hover:bg-sky-500 text-white' 
                 : 'bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-sky-300'
             }`}
           >
@@ -289,7 +289,7 @@ ${chapter.content}
 
         {/* Floating AI Chat Panel */}
         {showAIChat && (
-          <div className="absolute top-24 right-8 w-80 h-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-10 flex flex-col">
+          <div className="absolute top-24 right-8 w-96 h-[28rem] bg-white rounded-2xl shadow-2xl border border-gray-200 z-10 flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-sky-50 to-blue-50 rounded-t-2xl">
               <div>
                 <h3 className="font-semibold text-gray-900">AI Writing Partner</h3>
@@ -321,16 +321,15 @@ ${chapter.content}
                     <div
                       className={`max-w-[85%] rounded-lg p-3 transition-all duration-200 ${
                         message.role === 'user'
-                          ? 'bg-sky-600 text-white'
+                          ? 'bg-gradient-to-br from-sky-200 to-sky-300 text-gray-800'
                           : 'bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100 hover:shadow-md'
                       }`}
                     >
-                      <p 
-                        className="text-sm whitespace-pre-wrap select-text"
-                        onMouseUp={handleTextSelection}
-                      >
-                        {message.content}
-                      </p>
+                      <div className="flex items-start justify-between gap-4">
+                        <p className="text-sm flex-1 leading-relaxed text-gray-800">
+                          {message.content}
+                        </p>
+                      </div>
                       {message.role === 'assistant' && (
                         <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                           <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
@@ -340,16 +339,7 @@ ${chapter.content}
                     </div>
                   </div>
                 ))}
-                {isAskingAI === 'main' && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-50 text-gray-900 rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">AI is thinking...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+
                 <div ref={messagesEndRef} />
               </div>
             </div>
@@ -365,7 +355,7 @@ ${chapter.content}
                 <Button
                   onClick={sendMessage}
                   disabled={!userInput.trim() || isAskingAI === 'main'}
-                  className="bg-sky-600 hover:bg-sky-700 text-white px-3"
+                  className="bg-sky-400 hover:bg-sky-500 text-white px-3"
                   size="sm"
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -378,11 +368,11 @@ ${chapter.content}
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-sky-500 rounded-2xl flex items-center justify-center shadow-sm">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Book Builder</h2>
+              <h2 className="text-2xl font-bold text-sky-600">Book Builder</h2>
               <p className="text-sm text-gray-600">Organize your thoughts into a book</p>
             </div>
           </div>
@@ -472,7 +462,7 @@ ${chapter.content}
                   <div className="flex gap-2">
                     <Button
                       onClick={addChapter}
-                      className="bg-sky-600 hover:bg-sky-700 text-white"
+                      className="bg-sky-400 hover:bg-sky-500 text-white"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Chapter
@@ -562,7 +552,7 @@ ${chapter.content}
               <div className="flex gap-2">
                 <Button
                   onClick={saveBook}
-                  className="bg-sky-600 hover:bg-sky-700 text-white"
+                  className="bg-sky-400 hover:bg-sky-500 text-white"
                   disabled={!bookTitle.trim()}
                 >
                   <Save className="h-4 w-4 mr-2" />
@@ -619,7 +609,7 @@ ${chapter.content}
                 }
                 setShowSelectionTooltip(false)
               }}
-              className="bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-sm transition-all duration-200 hover:shadow-md"
+              className="bg-sky-400 hover:bg-sky-500 text-white text-xs shadow-sm transition-all duration-200 hover:shadow-md"
             >
               <BookOpen className="h-3 w-3 mr-1" />
               Add to Book Builder

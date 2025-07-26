@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 
 import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown, Image, Briefcase } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
 import FiveWhyModal from '@/components/five-why-modal'
 import MECEModal from '@/components/mece-modal'
@@ -71,7 +71,18 @@ export default function InterviewPage() {
   const [isBookBuilderOpen, setIsBookBuilderOpen] = useState(false) // Book Builderモーダルの状態
   const [isThinkingImageOpen, setIsThinkingImageOpen] = useState(false) // Thinking Imageモーダルの状態
   const router = useRouter()
+  const searchParams = useSearchParams()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // URLパラメータを処理してモーダルを開く
+  useEffect(() => {
+    const modal = searchParams.get('modal')
+    if (modal === 'five-why') {
+      setIsFiveWhyModalOpen(true)
+    } else if (modal === 'mece') {
+      setIsMECEModalOpen(true)
+    }
+  }, [searchParams])
 
   // チャット状態をローカルストレージに保存
   const saveChatState = () => {
@@ -121,11 +132,15 @@ export default function InterviewPage() {
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
   }
 
   useEffect(() => {
-    scrollToBottom()
+    if (messages.length > 0 || streamingMessage) {
+      scrollToBottom()
+    }
   }, [messages, streamingMessage])
 
   useEffect(() => {
@@ -355,6 +370,10 @@ export default function InterviewPage() {
     } finally {
       setIsLoading(false)
       setStreamingMessage('')
+      // メッセージ送信後にスクロール
+      setTimeout(() => {
+        scrollToBottom()
+      }, 200)
     }
   }
 
@@ -778,179 +797,72 @@ export default function InterviewPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center shadow-sm">
-                  <Brain className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    {selectedFile ? selectedFile.name : 'AI Interview'}
-                  </h1>
-                  <p className="text-sm text-gray-600">
-                    {selectedFile ? 'Deepen your learning through dialogue with AI' : 'Please select a file'}
-                  </p>
-                </div>
+        {/* Header Section */}
+        <div className="flex items-center justify-between p-8">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className={`text-2xl font-bold ${selectedFile ? 'text-sky-600' : 'text-gray-900'}`}>
+                  {selectedFile ? selectedFile.name : 'AI Interview'}
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedFile ? 'Deepen your learning through dialogue with AI' : 'Please select a file to begin'}
+                </p>
               </div>
-              
-              {/* Status Indicator */}
-              {selectedFile && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 border border-sky-200 rounded-full">
-                  <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-sky-700">Active Session</span>
-                </div>
-              )}
             </div>
             
-            {/* Action Buttons - Organized by priority */}
-            <div className="flex items-center gap-3">
-              {/* Navigation */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBack}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-
-              {/* Analyze - Always visible */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Analyze
-                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={startFiveWhyNormal}>
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    5 Whys Analysis
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={startMECEAnalysis}>
-                    <Layers className="h-4 w-4 mr-2" />
-                    MECE Analysis
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Main Actions - Only show when conversation is active */}
-              {conversation && messages.length > 0 && (
-                <Button
-                  onClick={() => generateReview('normal')}
-                  disabled={isGeneratingReview}
-                  className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all duration-200"
-                >
-                  {isGeneratingReview ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Review
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Utility Actions */}
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Create
-                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => setIsBookBuilderOpen(true)}>
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Book Builder
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsThinkingImageOpen(true)}>
-                      <Image className="h-4 w-4 mr-2" />
-                      Thinking Image
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                    >
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      Portfolio
-                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => router.push('/portfolio')}>
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      View Portfolio
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                    >
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      History
-                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => router.push('/review')}>
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Normal Review
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/five-why')}>
-                      <HelpCircle className="h-4 w-4 mr-2" />
-                      5 Whys Analysis History
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/mece')}>
-                      <Layers className="h-4 w-4 mr-2" />
-                      MECE Analysis History
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {selectedFile && messages.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearChatHistory}
-                    className="bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-all duration-200"
-                    title="Clear chat history"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+            {/* Status Indicator */}
+            {selectedFile && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-sky-50 border border-sky-200 rounded-full shadow-sm">
+                <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-sky-700">Active Session</span>
               </div>
-            </div>
+            )}
+          </div>
+          
+          {/* Action Buttons - Always visible */}
+          <div className="flex items-center gap-3">
+            {/* Navigation */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBack}
+              className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+
+            {/* Generate Review - Always visible but disabled when no conversation */}
+            <Button
+              onClick={() => generateReview('normal')}
+              disabled={isGeneratingReview || !conversation || messages.length === 0}
+              className="bg-sky-400 hover:bg-sky-500 text-white shadow-sm transition-all duration-200 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              {isGeneratingReview ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Review
+                </>
+              )}
+            </Button>
+
+            {/* Clear Chat History - Always visible but disabled when no conversation */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearChatHistory}
+              disabled={!selectedFile || messages.length === 0}
+              className="bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 shadow-sm transition-all duration-200 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-300"
+              title="Clear chat history"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -958,78 +870,81 @@ export default function InterviewPage() {
         <div className="flex-1 flex flex-col">
           {!selectedFile ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-8 max-w-md mx-auto px-6">
+              <div className="text-center space-y-8 max-w-lg mx-auto px-8">
                 <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-sky-50 to-sky-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm border border-sky-200">
-                    <FileText className="h-12 w-12 text-sky-600" />
+                  <div className="w-28 h-28 bg-gradient-to-br from-sky-50 to-sky-100 rounded-3xl flex items-center justify-center mx-auto shadow-lg border border-sky-200">
+                    <FileText className="h-16 w-16 text-sky-600 opacity-80" />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                    <div className="w-2 h-2 bg-sky-600 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-3 -right-3 w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                    <div className="w-3 h-3 bg-sky-600 rounded-full animate-pulse"></div>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    No File Selected
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Select a learning file from the sidebar or upload a new document to start your AI-powered learning session.
-                  </p>
-                  <div className="flex items-center justify-center gap-4 pt-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                      Start your learning session
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed text-lg">
+                      Select a learning file from the sidebar or upload a new document to begin your AI-powered learning journey.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-8 pt-4">
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <div className="w-3 h-3 bg-sky-400 rounded-full shadow-sm"></div>
                       <span>Choose from existing files</span>
                     </div>
-                    <div className="w-px h-4 bg-gray-300"></div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
+                    <div className="w-px h-6 bg-gray-300"></div>
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <div className="w-3 h-3 bg-sky-400 rounded-full shadow-sm"></div>
                       <span>Upload new content</span>
                     </div>
                   </div>
                 </div>
-                <div className="pt-4">
+                <div className="pt-6">
                   <Button
                     onClick={handleBack}
-                    className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md"
+                    className="bg-sky-600 hover:bg-sky-700 text-white px-8 py-4 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl text-lg font-medium"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="h-5 w-5 mr-3" />
                     Go to Upload
                   </Button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex-1 bg-white/50">
-              <div className="h-full flex flex-col">
+            <div className="flex-1 bg-gradient-to-br from-gray-50 to-white">
+              <div className="h-full flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                 {/* Messages Display */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+                <div className="flex-1 overflow-y-auto p-8" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                  <div className="space-y-8 max-w-4xl mx-auto">
                     {messages.map((message, index) => (
                       <div
                         key={message.id}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-in`}
-                        style={{ animationDelay: `${index * 100}ms` }}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         {message.role === 'assistant' && (
-                          <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                            <Brain className="h-4 w-4 text-sky-600" />
+                          <div className="w-8 h-8 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-sm border border-sky-200">
+                            <Brain className="h-4 w-4 text-sky-300" />
                           </div>
                         )}
                         <div
-                          className={`max-w-xs lg:max-w-md px-6 py-4 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                            message.role === 'user'
-                              ? 'bg-sky-100 text-gray-900 shadow-md hover:shadow-lg'
-                              : 'bg-white border border-gray-200 text-gray-900 hover:border-sky-200'
+                          className={`max-w-xs lg:max-w-md px-5 py-4 rounded-3xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                            message.role === 'user' 
+                              ? 'bg-gradient-to-br from-sky-200 to-sky-300 text-gray-800 shadow-sm hover:shadow-md' 
+                              : 'bg-white border border-gray-200 text-gray-900 hover:border-sky-200 hover:shadow-md'
                           }`}
                           onMouseUp={handleTextSelection}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <p className={`text-sm flex-1 leading-relaxed ${message.role === 'user' ? 'font-medium text-gray-900' : 'text-gray-900'}`}>{message.content}</p>
+                          <div className="flex items-start justify-between gap-4">
+                            <p className={`text-sm flex-1 leading-relaxed ${message.role === 'user' ? 'font-medium text-gray-800' : 'text-gray-900'}`}>
+                              {message.content}
+                            </p>
                             {message.role === 'assistant' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => generateSpeech(message.content, message.id)}
-                                className="flex-shrink-0 mt-1 hover:bg-sky-50"
+                                className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
                                 title="Play audio"
                                 disabled={speechLoading === message.id}
                               >
@@ -1041,6 +956,12 @@ export default function InterviewPage() {
                               </Button>
                             )}
                           </div>
+                          {message.role === 'assistant' && (
+                            <div className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+                              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                              Select text to add to your book
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1048,14 +969,14 @@ export default function InterviewPage() {
                     {/* Streaming message */}
                     {streamingMessage && (
                       <div className="flex justify-start">
-                        <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          <Brain className="h-4 w-4 text-sky-600" />
+                        <div className="w-8 h-8 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-sm border border-sky-200">
+                          <Brain className="h-4 w-4 text-sky-300" />
                         </div>
                         <div 
-                          className="bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm max-w-xs lg:max-w-md"
+                          className="bg-white border border-gray-200 px-5 py-4 rounded-3xl shadow-sm max-w-xs lg:max-w-md hover:shadow-md transition-all duration-200"
                           onMouseUp={handleTextSelection}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start justify-between gap-4">
                             <p className="text-sm text-gray-900 flex-1 leading-relaxed">
                               {streamingMessage}
                               <span className="animate-pulse text-sky-600">▋</span>
@@ -1064,7 +985,7 @@ export default function InterviewPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => generateSpeech(streamingMessage, 'streaming')}
-                              className="flex-shrink-0 mt-1 hover:bg-sky-50"
+                              className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
                               title="Play audio"
                               disabled={speechLoading === 'streaming'}
                             >
@@ -1081,13 +1002,13 @@ export default function InterviewPage() {
                     
                     {isLoading && !streamingMessage && (
                       <div className="flex justify-start">
-                        <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          <Brain className="h-4 w-4 text-sky-600" />
+                        <div className="w-8 h-8 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-sm border border-sky-200">
+                          <Brain className="h-4 w-4 text-sky-300" />
                         </div>
-                        <div className="bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
-                            <p className="text-sm text-sky-600">AI is thinking...</p>
+                        <div className="bg-white border border-gray-200 px-5 py-4 rounded-3xl shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+                            <p className="text-sm text-sky-600 font-medium">AI is thinking...</p>
                           </div>
                         </div>
                       </div>
@@ -1098,20 +1019,20 @@ export default function InterviewPage() {
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t border-gray-200 p-6 bg-white/80 backdrop-blur-xl">
+                <div className="border-t border-gray-200 p-8 bg-white/90 backdrop-blur-xl">
                   <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center w-full px-4 py-3 bg-white border border-gray-300 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-sky-200 focus-within:border-sky-500 transition-all duration-200 hover:shadow-md">
+                    <div className="flex items-center w-full px-6 py-4 bg-white border border-gray-300 rounded-3xl shadow-lg focus-within:ring-2 focus-within:ring-sky-200 focus-within:border-sky-500 transition-all duration-200 hover:shadow-xl">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={isRecording ? stopRecording : startRecording}
-                        className={`rounded-full mr-3 transition-all duration-200 ${
+                        className={`rounded-full mr-4 transition-all duration-200 ${
                           isRecording 
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-sm' 
-                            : 'text-gray-500 hover:text-sky-600 hover:bg-sky-50 hover:shadow-sm'
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-md' 
+                            : 'text-gray-500 hover:text-sky-600 hover:bg-sky-50 hover:shadow-md'
                         }`}
                       >
-                        <Mic className="h-4 w-4" />
+                        <Mic className="h-5 w-5" />
                       </Button>
                       <input
                         type="text"
@@ -1119,79 +1040,65 @@ export default function InterviewPage() {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
                         placeholder="Type your message..."
                         onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && sendMessage()}
-                        className="flex-1 outline-none text-sm bg-transparent placeholder-gray-400"
+                        className="flex-1 outline-none text-base bg-transparent placeholder-gray-400"
                       />
-                      <Button 
-                        onClick={sendMessage} 
+                      <Button
+                        onClick={sendMessage}
                         disabled={isLoading || !inputMessage.trim()}
-                        className="ml-3 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-2 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-4 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-3 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                       >
-                        <Send className="h-4 w-4" />
+                        <Send className="h-5 w-5" />
                       </Button>
                     </div>
-                    
+
                     {/* Quick Actions */}
                     {selectedFile && (
-                      <div className="mt-6 flex items-center justify-center">
-                        <div className="bg-gray-50 border border-gray-200 rounded-2xl px-6 py-3 flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-sky-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-gray-700">Quick Actions</span>
+                      <div className="mt-8 flex items-center justify-center">
+                        <div className="bg-gray-50 border border-gray-200 rounded-3xl px-8 py-4 flex items-center gap-8 shadow-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 bg-sky-500 rounded-full shadow-sm"></div>
+                            <span className="text-sm font-semibold text-gray-700">Quick Actions</span>
                           </div>
-                          <div className="w-px h-4 bg-gray-300"></div>
+                          <div className="w-px h-6 bg-gray-300"></div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={startFiveWhyNormal}
-                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                            className="text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-xl px-4 py-2"
                           >
-                            <HelpCircle className="h-3 w-3 mr-1" />
+                            <HelpCircle className="h-4 w-4 mr-2" />
                             5 Whys Analysis
                           </Button>
-                          <div className="w-px h-4 bg-gray-300"></div>
+                          <div className="w-px h-6 bg-gray-300"></div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={startMECEAnalysis}
-                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                            className="text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-xl px-4 py-2"
                           >
-                            <Layers className="h-3 w-3 mr-1" />
+                            <Layers className="h-4 w-4 mr-2" />
                             MECE Analysis
                           </Button>
-                          <div className="w-px h-4 bg-gray-300"></div>
+                          <div className="w-px h-6 bg-gray-300"></div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push('/review')}
-                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                            onClick={() => setIsBookBuilderOpen(true)}
+                            className="text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-xl px-4 py-2"
                           >
-                            <BookOpen className="h-3 w-3 mr-1" />
-                            View Review List
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            Book Builder
                           </Button>
-                          {conversation && messages.length > 0 && (
-                            <>
-                              <div className="w-px h-4 bg-gray-300"></div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => generateReview('normal')}
-                                disabled={isGeneratingReview}
-                                className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
-                              >
-                                {isGeneratingReview ? (
-                                  <>
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                    Generating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-3 w-3 mr-1" />
-                                    Generate New Review
-                                  </>
-                                )}
-                              </Button>
-                            </>
-                          )}
+                          <div className="w-px h-6 bg-gray-300"></div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsThinkingImageOpen(true)}
+                            className="text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-xl px-4 py-2"
+                          >
+                            <Image className="h-4 w-4 mr-2" />
+                            Thinking Image
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1201,222 +1108,149 @@ export default function InterviewPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* 5ホワイモーダル */}
-      <FiveWhyModal
-        isOpen={isFiveWhyModalOpen}
-        onClose={() => setIsFiveWhyModalOpen(false)}
-        initialTopic={selectedText}
-        onSendToChat={async (summary) => {
-          // 5 Whys分析結果をチャット履歴に追加
-          if (conversation) {
-            const newMessage: Message = {
-              id: `temp-${Date.now()}`,
-              conversation_id: conversation.id,
-              role: 'user',
-              content: summary,
-              audio_url: null,
-              created_at: new Date().toISOString()
-            }
-            
-            // メッセージをデータベースに保存
-            if (supabase) {
-              const { data: savedMessage, error } = await supabase
-                .from('messages')
-                .insert({
-                  conversation_id: conversation.id,
-                  role: 'user',
-                  content: summary
-                })
-                .select()
-                .single()
-              
-              if (savedMessage) {
-                // 保存されたメッセージで更新
-                setMessages(prev => [...prev, savedMessage])
-              } else {
-                // エラーの場合は一時的なメッセージを使用
-                setMessages(prev => [...prev, newMessage])
-              }
-            } else {
-              setMessages(prev => [...prev, newMessage])
-            }
-            
-            // AI応答を生成
-            generateAIResponse(summary)
-          }
-          setIsFiveWhyModalOpen(false)
-        }}
-        onSaveSuccess={() => {
-          // セーブ成功通知を表示
-          setShowSaveSuccess(true)
-          // 3秒後に通知を非表示
-          setTimeout(() => {
-            setShowSaveSuccess(false)
-          }, 3000)
-        }}
-      />
-
-      {/* MECEモーダル */}
-      <MECEModal
-        isOpen={isMECEModalOpen}
-        onClose={() => {
-          console.log('MECEモーダルを閉じます')
-          setIsMECEModalOpen(false)
-        }}
-        initialTheme={selectedText}
-        onSendToChat={async (summary) => {
-          // MECE分析結果をチャット履歴に追加
-          if (conversation) {
-            const newMessage: Message = {
-              id: `temp-${Date.now()}`,
-              conversation_id: conversation.id,
-              role: 'user',
-              content: summary,
-              audio_url: null,
-              created_at: new Date().toISOString()
-            }
-            
-            // メッセージをデータベースに保存
-            if (supabase) {
-              const { data: savedMessage, error } = await supabase
-                .from('messages')
-                .insert({
-                  conversation_id: conversation.id,
-                  role: 'user',
-                  content: summary
-                })
-                .select()
-                .single()
-              
-              if (savedMessage) {
-                // 保存されたメッセージで更新
-                setMessages(prev => [...prev, savedMessage])
-              } else {
-                // エラーの場合は一時的なメッセージを使用
-                setMessages(prev => [...prev, newMessage])
-              }
-            } else {
-              setMessages(prev => [...prev, newMessage])
-            }
-            
-            // AI応答を生成
-            generateAIResponse(summary)
-          }
-          setIsMECEModalOpen(false)
-        }}
-        onSaveSuccess={() => {
-          // MECEセーブ成功通知を表示
-          setShowMECESaveSuccess(true)
-          // 3秒後に通知を非表示
-          setTimeout(() => {
-            setShowMECESaveSuccess(false)
-          }, 3000)
-        }}
-      />
-
-      {/* テキスト選択ツールチップ */}
-      {showSelectionTooltip && (
-        <div
-          className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-xl p-3 animate-fade-in"
-          style={{
-            left: tooltipPosition.x,
-            top: tooltipPosition.y - 60,
-            transform: 'translateX(-50%)'
+        {/* 5 Whys Modal */}
+        <FiveWhyModal
+          isOpen={isFiveWhyModalOpen}
+          onClose={() => {
+            setIsFiveWhyModalOpen(false)
+            // URLパラメータをクリア
+            router.replace('/interview')
           }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
-            <Button
-              size="sm"
-              onClick={startFiveWhyWithSelection}
-              className="bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-sm transition-all duration-200 hover:shadow-md"
-            >
-              <HelpCircle className="h-3 w-3 mr-1" />
-              Start 5 Whys Analysis
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* ツールチップを非表示にするためのオーバーレイ */}
-      {showSelectionTooltip && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={hideSelectionTooltip}
+          initialTopic={selectedText}
+          onSendToChat={(summary) => {
+            setInputMessage(summary)
+            setIsFiveWhyModalOpen(false)
+            router.replace('/interview')
+          }}
+          onSaveSuccess={() => {
+            setShowSaveSuccess(true)
+            setTimeout(() => setShowSaveSuccess(false), 5000)
+          }}
         />
-      )}
 
-      {/* 5 Whysセーブ成功通知 */}
-      {showSaveSuccess && (
-        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-green-600 rounded-full"></div>
+        {/* MECE Modal */}
+        <MECEModal
+          isOpen={isMECEModalOpen}
+          onClose={() => {
+            setIsMECEModalOpen(false)
+            // URLパラメータをクリア
+            router.replace('/interview')
+          }}
+          initialTheme={selectedText}
+          onSendToChat={(summary) => {
+            setInputMessage(summary)
+            setIsMECEModalOpen(false)
+            router.replace('/interview')
+          }}
+          onSaveSuccess={() => {
+            setShowMECESaveSuccess(true)
+            setTimeout(() => setShowMECESaveSuccess(false), 5000)
+          }}
+        />
+
+        {/* テキスト選択ツールチップ */}
+        {showSelectionTooltip && (
+          <div
+            className="fixed z-50 bg-white border border-gray-300 rounded-2xl shadow-2xl p-4 animate-fade-in"
+            style={{
+              left: tooltipPosition.x,
+              top: tooltipPosition.y - 70,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-sky-500 rounded-full animate-pulse shadow-sm"></div>
+              <Button
+                size="sm"
+                onClick={startFiveWhyWithSelection}
+                className="bg-sky-600 hover:bg-sky-700 text-white text-sm shadow-lg transition-all duration-200 hover:shadow-xl rounded-xl px-4 py-2"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Start 5 Whys Analysis
+              </Button>
             </div>
-            <div>
-              <p className="text-sm font-medium text-green-800">
-                5 Whys analysis saved successfully
-              </p>
-              <p className="text-xs text-green-600">
-                You can check it in the history page
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/five-why')}
-              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-100"
-            >
-              View History
-            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* MECEセーブ成功通知 */}
-      {showMECESaveSuccess && (
-        <div className="fixed top-20 right-4 z-50 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-lg animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+        {/* ツールチップを非表示にするためのオーバーレイ */}
+        {showSelectionTooltip && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={hideSelectionTooltip}
+          />
+        )}
+
+        {/* 5 Whysセーブ成功通知 */}
+        {showSaveSuccess && (
+          <div className="fixed top-6 right-6 z-50 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 shadow-2xl animate-fade-in">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center shadow-sm">
+                <div className="w-5 h-5 bg-green-600 rounded-full shadow-sm"></div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-green-800">
+                  5 Whys analysis saved successfully
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  You can check it in the history page
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/five-why')}
+                className="text-xs text-green-600 hover:text-green-800 hover:bg-green-100 rounded-xl px-3 py-2"
+              >
+                View History
+              </Button>
             </div>
-            <div>
-              <p className="text-sm font-medium text-blue-800">
-                MECE analysis saved successfully
-              </p>
-              <p className="text-xs text-blue-600">
-                You can check it in the history page
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/mece')}
-              className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100"
-            >
-              View History
-            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Book Builder Modal */}
-      <BookBuilderModal
-        isOpen={isBookBuilderOpen}
-        onClose={() => setIsBookBuilderOpen(false)}
-        conversationId={conversation?.id}
-        messages={messages}
-      />
+        {/* MECEセーブ成功通知 */}
+        {showMECESaveSuccess && (
+          <div className="fixed top-24 right-6 z-50 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-2xl p-5 shadow-2xl animate-fade-in">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-2xl flex items-center justify-center shadow-sm">
+                <div className="w-5 h-5 bg-blue-600 rounded-full shadow-sm"></div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-800">
+                  MECE analysis saved successfully
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  You can check it in the history page
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/mece')}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-xl px-3 py-2"
+              >
+                View History
+              </Button>
+            </div>
+          </div>
+        )}
 
-      {/* Thinking Image Modal */}
-      <ThinkingImageModal
-        isOpen={isThinkingImageOpen}
-        onClose={() => setIsThinkingImageOpen(false)}
-        conversationId={conversation?.id}
-        messages={messages}
-      />
+        {/* Book Builder Modal */}
+        <BookBuilderModal
+          isOpen={isBookBuilderOpen}
+          onClose={() => setIsBookBuilderOpen(false)}
+          conversationId={conversation?.id}
+          messages={messages}
+        />
+
+        {/* Thinking Image Modal */}
+        <ThinkingImageModal
+          isOpen={isThinkingImageOpen}
+          onClose={() => setIsThinkingImageOpen(false)}
+          conversationId={conversation?.id}
+          messages={messages}
+        />
+      </div>
     </div>
   )
 } 
