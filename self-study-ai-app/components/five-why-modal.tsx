@@ -290,7 +290,7 @@ Let's discuss this analysis result in more detail.`
                 <Input
                   value={tree.topic}
                   onChange={(e) => setTree(prev => ({ ...prev, topic: e.target.value }))}
-                  placeholder="e.g., Sales are not increasing"
+                  placeholder="Sales are not increasing"
                   className="text-lg"
                 />
               </CardContent>
@@ -337,7 +337,7 @@ Let's discuss this analysis result in more detail.`
                             index === 0 
                               ? (tree.topic.trim() 
                                   ? `Why is ${tree.topic}?`
-                                  : 'Please enter the challenge you want to analyze')
+                                  : '分析したい課題を入力してください')
                               : 'Enter your answer and press the "Why!" button'
                           )}
                         </div>
@@ -347,11 +347,11 @@ Let's discuss this analysis result in more detail.`
                           Answer
                         </label>
                         <div className="flex gap-2">
-                          <Input
-                            value={level.answer}
-                            onChange={(e) => updateLevel(level.level_number, 'answer', e.target.value)}
-                            placeholder="Enter your answer"
-                            className="text-sm flex-1"
+                                                  <Input
+                          value={level.answer}
+                          onChange={(e) => updateLevel(level.level_number, 'answer', e.target.value)}
+                          placeholder="Enter your answer"
+                          className="text-sm flex-1"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter' && level.answer.trim()) {
                                 generateNextQuestion(level.level_number)

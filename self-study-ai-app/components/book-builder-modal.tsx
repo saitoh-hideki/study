@@ -38,8 +38,6 @@ export default function BookBuilderModal({ isOpen, onClose, conversationId, mess
   // 削除: useEffect, isAuthenticated, getSession など認証関連
   // Ask AIボタンのdisabled条件から!isAuthenticatedを削除
 
-  if (!isOpen) return null
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -62,9 +60,11 @@ export default function BookBuilderModal({ isOpen, onClose, conversationId, mess
   }
 
   // 選択ツールチップを非表示
-  const hideSelectionTooltip = () => {
+    const hideSelectionTooltip = () => {
     setShowSelectionTooltip(false)
   }
+
+  if (!isOpen) return null
 
   const generateChapterOutline = async () => {
     if (!conversationId || !messages) return

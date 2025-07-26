@@ -12,7 +12,10 @@ import {
   Edit3, 
   Save,
   X,
-  MoreVertical
+  MoreVertical,
+  CheckSquare,
+  Square,
+  Loader2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -37,6 +40,10 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
   const [newFileName, setNewFileName] = useState('')
   const [editingFileId, setEditingFileId] = useState<string | null>(null)
   const [editingFileName, setEditingFileName] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  const [showBulkActions, setShowBulkActions] = useState(false)
+  const [isHoveringHeader, setIsHoveringHeader] = useState(false)
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -189,6 +196,7 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
   const deleteFile = async (fileId: string) => {
     if (!confirm('このファイルを削除しますか？')) return
 
+    setDeletingFileId(fileId)
     try {
       const { error } = await supabase
         .from('uploaded_files')
@@ -203,6 +211,8 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
       setFiles(prev => prev.filter(file => file.id !== fileId))
     } catch (error) {
       console.error('Error deleting file:', error)
+    } finally {
+      setDeletingFileId(null)
     }
   }
 
@@ -215,35 +225,133 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
     })
   }
 
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId)
+      } else {
+        newSet.add(fileId)
+      }
+      return newSet
+    })
+  }
+
+  const selectAllFiles = () => {
+    setSelectedFiles(new Set(files.map(file => file.id)))
+  }
+
+  const deselectAllFiles = () => {
+    setSelectedFiles(new Set())
+  }
+
+  const deleteSelectedFiles = async () => {
+    if (selectedFiles.size === 0) return
+
+    if (!window.confirm(`${selectedFiles.size}個のファイルを削除しますか？`)) {
+      return
+    }
+
+    try {
+      for (const fileId of selectedFiles) {
+        const { error } = await supabase
+          .from('uploaded_files')
+          .delete()
+          .eq('id', fileId)
+        
+        if (error) {
+          console.error('Error deleting file:', error)
+        }
+      }
+
+      // ファイルリストを更新
+      setFiles(prev => prev.filter(file => !selectedFiles.has(file.id)))
+      setSelectedFiles(new Set())
+      setShowBulkActions(false)
+    } catch (error) {
+      console.error('Error deleting selected files:', error)
+    }
+  }
+
   return (
     <div className="w-72 bg-gray-50 border-r border-gray-200 h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-700">学習ファイル</h2>
+      <div className="p-5 border-b border-gray-200">
+        <div 
+          className="flex items-center justify-between mb-3 group"
+          onMouseEnter={() => {
+            setIsHoveringHeader(true)
+            setShowBulkActions(true)
+          }}
+          onMouseLeave={() => {
+            setIsHoveringHeader(false)
+            setShowBulkActions(false)
+          }}
+        >
+          <div className="flex items-center justify-between flex-1">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Learning Files</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                {files.length} files
+              </p>
+            </div>
+            {showBulkActions && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAllFiles}
+                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+                  title="Select all"
+                >
+                  <CheckSquare className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deselectAllFiles}
+                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+                  title="Deselect all"
+                >
+                  <Square className="h-3 w-3" />
+                </Button>
+                {selectedFiles.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={deleteSelectedFiles}
+                    className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    title={`Delete ${selectedFiles.size} files`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowNewFileForm(true)}
-            className="h-6 w-6 p-0"
+            className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
 
         {showNewFileForm && (
-          <div className="space-y-2">
+          <div className="space-y-3 mt-3">
             <Input
               value={newFileName}
               onChange={(e) => setNewFileName(e.target.value)}
               placeholder="ファイル名を入力"
-              className="h-8 text-sm"
+              className="h-9 text-sm"
               onKeyPress={(e) => e.key === 'Enter' && createNewFile()}
             />
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               <Button
                 size="sm"
                 onClick={createNewFile}
-                className="h-6 text-xs"
+                className="h-8 text-xs bg-sky-600 hover:bg-sky-700 text-white"
               >
                 <Save className="h-3 w-3 mr-1" />
                 作成
@@ -255,7 +363,7 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
                   setShowNewFileForm(false)
                   setNewFileName('')
                 }}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -283,9 +391,8 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
                 }`}
                 onClick={() => onFileSelect(file)}
               >
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-500" />
-                  <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-gray-900 truncate">
                     {editingFileId === file.id ? (
                       <Input
                         value={editingFileName}
@@ -296,41 +403,71 @@ export default function FileExplorer({ onFileSelect, selectedFileId }: FileExplo
                         autoFocus
                       />
                     ) : (
-                      <div className="text-sm font-medium text-gray-700 truncate">
-                        {file.name}
-                      </div>
+                      file.name
                     )}
-                    <div className="text-xs text-gray-500">
+                  </h3>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-500">
                       {formatDate(file.created_at)}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFileSelection(file.id)
+                        }}
+                        className={`transition-all duration-200 rounded-lg ${
+                          selectedFiles.has(file.id)
+                            ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                        }`}
+                        title={selectedFiles.has(file.id) ? 'Deselect' : 'Select for deletion'}
+                      >
+                        {selectedFiles.has(file.id) ? (
+                          <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                        ) : (
+                          <div className="w-3 h-3 border border-gray-400 rounded-sm"></div>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingFileId(file.id)
+                          setEditingFileName(file.name)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+                        title="Edit file name"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteFile(file.id)
+                        }}
+                        disabled={deletingFileId === file.id}
+                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Delete file"
+                      >
+                        {deletingFileId === file.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </Button>
                     </div>
                   </div>
-                </div>
-
-                <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingFileId(file.id)
-                        setEditingFileName(file.name)
-                      }}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Edit3 className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteFile(file.id)
-                      }}
-                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                  <div className="flex items-center gap-2 mt-2">
+                    <FileText className="h-3 w-3 text-sky-600" />
+                    <span className="text-xs text-gray-600">
+                      Study file
+                    </span>
                   </div>
                 </div>
               </div>

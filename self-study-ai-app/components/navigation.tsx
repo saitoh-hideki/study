@@ -25,12 +25,12 @@ export function Navigation() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border/30">
       <div className="container mx-auto px-6">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-12">
-            <Link href="/" className="flex items-center gap-3 font-bold text-xl text-foreground hover:text-sky-600 transition-colors">
-              <div className="w-8 h-8 bg-gradient-to-br from-sky-600 to-sky-700 rounded-lg flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-16">
+            <Link href="/" className="flex items-center gap-4 font-bold text-2xl text-foreground hover:text-sky-600 transition-colors">
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl flex items-center justify-center shadow-lg">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="font-semibold">Reflecta</span>
+              <span className="font-bold text-2xl">Reflecta</span>
             </Link>
             <div className="hidden md:flex items-center gap-2">
               {navigation.map((item) => {

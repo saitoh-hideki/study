@@ -769,7 +769,7 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 to-white flex">
+    <div className="h-screen bg-gradient-to-br from-gray-50 to-white flex pt-16">
       {/* File Explorer Sidebar */}
       <FileExplorer 
         onFileSelect={handleFileSelect}
@@ -779,7 +779,7 @@ export default function InterviewPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 px-6 py-4 mt-16">
+        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4">

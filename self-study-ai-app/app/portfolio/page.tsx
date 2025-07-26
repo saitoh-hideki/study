@@ -66,8 +66,9 @@ export default function PortfolioPage() {
 
       if (booksError) {
         console.error('Error loading books:', booksError)
+        setBooks([])
       } else {
-        setBooks(booksData || [])
+        setBooks(Array.isArray(booksData) ? booksData : [])
       }
 
       // Load thinking images
@@ -78,11 +79,14 @@ export default function PortfolioPage() {
 
       if (imagesError) {
         console.error('Error loading thinking images:', imagesError)
+        setThinkingImages([])
       } else {
-        setThinkingImages(imagesData || [])
+        setThinkingImages(Array.isArray(imagesData) ? imagesData : [])
       }
     } catch (error) {
       console.error('Error loading portfolio:', error)
+      setBooks([])
+      setThinkingImages([])
     } finally {
       setIsLoading(false)
     }
@@ -101,7 +105,7 @@ export default function PortfolioPage() {
         console.error('Error deleting book:', error)
         alert('Failed to delete book')
       } else {
-        setBooks(books.filter(book => book.id !== bookId))
+        setBooks(prevBooks => prevBooks.filter(book => book.id !== bookId))
       }
     } catch (error) {
       console.error('Error deleting book:', error)
@@ -122,7 +126,7 @@ export default function PortfolioPage() {
         console.error('Error deleting thinking image:', error)
         alert('Failed to delete thinking image')
       } else {
-        setThinkingImages(thinkingImages.filter(img => img.id !== imageId))
+        setThinkingImages(prevImages => prevImages.filter(img => img.id !== imageId))
       }
     } catch (error) {
       console.error('Error deleting thinking image:', error)
