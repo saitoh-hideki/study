@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { FileUp, Mic, BookOpen, Settings, Sparkles, HelpCircle, Layers, ChevronDown, Plus, History } from 'lucide-react'
+import { FileUp, Mic, BookOpen, Settings, Sparkles, HelpCircle, Layers, ChevronDown, Plus, History, Image, Briefcase } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,6 +131,73 @@ export function Navigation() {
                     <Link href="/mece" className="flex items-center gap-2">
                       <History className="h-4 w-4" />
                       View Analysis History
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Create Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="group relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Create</span>
+                    <ChevronDown className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+                      <div className="bg-foreground text-background text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+                        Create books and images from your thoughts
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
+                      </div>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/book-builder" className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Book Builder
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/thinking-image" className="flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      Thinking Image
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Portfolio Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'group relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg',
+                      pathname.startsWith('/portfolio')
+                        ? 'text-sky-600 bg-sky-50 border border-sky-200'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    <span>Portfolio</span>
+                    <ChevronDown className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+                      <div className="bg-foreground text-background text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+                        View your created books and images
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
+                      </div>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/portfolio" className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      View Portfolio
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown, Image, Briefcase } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
 import FiveWhyModal from '@/components/five-why-modal'
 import MECEModal from '@/components/mece-modal'
+import BookBuilderModal from '@/components/book-builder-modal'
+import ThinkingImageModal from '@/components/thinking-image-modal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +68,8 @@ export default function InterviewPage() {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }) // ツールチップの位置
   const [showSaveSuccess, setShowSaveSuccess] = useState(false) // 5 Whysセーブ成功通知の表示
   const [showMECESaveSuccess, setShowMECESaveSuccess] = useState(false) // MECEセーブ成功通知の表示
+  const [isBookBuilderOpen, setIsBookBuilderOpen] = useState(false) // Book Builderモーダルの状態
+  const [isThinkingImageOpen, setIsThinkingImageOpen] = useState(false) // Thinking Imageモーダルの状態
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -801,88 +805,9 @@ export default function InterviewPage() {
               )}
             </div>
             
+            {/* Action Buttons - Organized by priority */}
             <div className="flex items-center gap-3">
-              {conversation && messages.length > 0 && (
-                <Button
-                  onClick={() => generateReview('normal')}
-                  disabled={isGeneratingReview}
-                  className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                >
-                  {isGeneratingReview ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating Review...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Review
-                    </>
-                  )}
-                </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Analyst
-                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={startFiveWhyNormal}>
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    5 Whys Analyst
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={startMECEAnalysis}>
-                    <Layers className="h-4 w-4 mr-2" />
-                    MECE Analyst
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Review List
-                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => router.push('/review')}>
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Normal Review
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/five-why')}>
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    5 Whys Analysis History
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/mece')}>
-                    <Layers className="h-4 w-4 mr-2" />
-                    MECE Analysis History
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {selectedFile && messages.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearChatHistory}
-                  className="bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-all duration-200"
-                  title="チャット履歴をクリア"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear Chat
-                </Button>
-              )}
+              {/* Navigation */}
               <Button
                 variant="outline"
                 size="sm"
@@ -892,6 +817,139 @@ export default function InterviewPage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
+
+              {/* Analyze - Always visible */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Analyze
+                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={startFiveWhyNormal}>
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    5 Whys Analysis
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={startMECEAnalysis}>
+                    <Layers className="h-4 w-4 mr-2" />
+                    MECE Analysis
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Main Actions - Only show when conversation is active */}
+              {conversation && messages.length > 0 && (
+                <Button
+                  onClick={() => generateReview('normal')}
+                  disabled={isGeneratingReview}
+                  className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all duration-200"
+                >
+                  {isGeneratingReview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Review
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Utility Actions */}
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Create
+                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setIsBookBuilderOpen(true)}>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Book Builder
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsThinkingImageOpen(true)}>
+                      <Image className="h-4 w-4 mr-2" />
+                      Thinking Image
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Portfolio
+                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => router.push('/portfolio')}>
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      View Portfolio
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      History
+                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => router.push('/review')}>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Normal Review
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/five-why')}>
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      5 Whys Analysis History
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/mece')}>
+                      <Layers className="h-4 w-4 mr-2" />
+                      MECE Analysis History
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {selectedFile && messages.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearChatHistory}
+                    className="bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-all duration-200"
+                    title="Clear chat history"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1343,6 +1401,22 @@ export default function InterviewPage() {
           </div>
         </div>
       )}
+
+      {/* Book Builder Modal */}
+      <BookBuilderModal
+        isOpen={isBookBuilderOpen}
+        onClose={() => setIsBookBuilderOpen(false)}
+        conversationId={conversation?.id}
+        messages={messages}
+      />
+
+      {/* Thinking Image Modal */}
+      <ThinkingImageModal
+        isOpen={isThinkingImageOpen}
+        onClose={() => setIsThinkingImageOpen(false)}
+        conversationId={conversation?.id}
+        messages={messages}
+      />
     </div>
   )
 } 
