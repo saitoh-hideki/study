@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft } from 'lucide-react'
+import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft, ChevronDown, Brain } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Session {
@@ -197,7 +198,7 @@ export default function ReviewPage() {
     }
   }
 
-  const generateReview = async () => {
+  const generateReview = async (reviewType: 'normal' | 'conversation' | 'learning' = 'normal') => {
     if (!selectedSession) return
 
     setIsGeneratingReview(true)
@@ -218,6 +219,7 @@ export default function ReviewPage() {
           conversationId: selectedSession.id,
           fileId: selectedSession.file_id,
           extractedText: file?.extracted_text || '',
+          reviewType: reviewType,
         }),
       })
 
@@ -653,23 +655,50 @@ export default function ReviewPage() {
                     </div>
                     {reviews.length === 0 && (
                       <div className="flex gap-2">
-                        <Button
-                          onClick={generateReview}
-                          disabled={isGeneratingReview}
-                          className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all duration-200"
-                        >
-                          {isGeneratingReview ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Generating Review...
-                            </>
-                          ) : (
-                            <>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              disabled={isGeneratingReview}
+                              className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all duration-200"
+                            >
+                              {isGeneratingReview ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Generating Review...
+                                </>
+                              ) : (
+                                <>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Generate Review
+                                  <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                                </>
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => generateReview('normal')}>
                               <BookOpen className="h-4 w-4 mr-2" />
-                              Generate AI Review
-                            </>
-                          )}
-                        </Button>
+                              <div>
+                                <div className="font-medium">通常のレビュー</div>
+                                <div className="text-xs text-gray-500">学習内容の総合的な分析</div>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateReview('conversation')}>
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              <div>
+                                <div className="font-medium">会話ヒストリー</div>
+                                <div className="text-xs text-gray-500">対話の流れと理解度の分析</div>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateReview('learning')}>
+                              <Brain className="h-4 w-4 mr-2" />
+                              <div>
+                                <div className="font-medium">学習ヒストリー</div>
+                                <div className="text-xs text-gray-500">学習プロセスと成長の記録</div>
+                              </div>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     )}
                   </CardHeader>

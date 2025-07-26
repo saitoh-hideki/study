@@ -665,7 +665,7 @@ export default function InterviewPage() {
     }
   }
 
-  const generateReview = async () => {
+  const generateReview = async (reviewType: 'normal' | 'conversation' | 'learning' = 'normal') => {
     if (!conversation || !selectedFile) return
 
     setIsGeneratingReview(true)
@@ -679,6 +679,7 @@ export default function InterviewPage() {
           conversationId: conversation.id,
           fileId: selectedFile.id,
           extractedText: selectedFile.extracted_text || '',
+          reviewType: reviewType,
         }),
       })
 
@@ -803,7 +804,7 @@ export default function InterviewPage() {
             <div className="flex items-center gap-3">
               {conversation && messages.length > 0 && (
                 <Button
-                  onClick={generateReview}
+                  onClick={() => generateReview('normal')}
                   disabled={isGeneratingReview}
                   className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
                 >
@@ -815,7 +816,7 @@ export default function InterviewPage() {
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate AI Review
+                      Generate Review
                     </>
                   )}
                 </Button>
@@ -843,15 +844,33 @@ export default function InterviewPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/review')}
-                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                Review List
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Review List
+                    <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => router.push('/review')}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Normal Review
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/five-why')}>
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    5 Whys Analysis History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/mece')}>
+                    <Layers className="h-4 w-4 mr-2" />
+                    MECE Analysis History
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {selectedFile && messages.length > 0 && (
                 <Button
                   variant="outline"
@@ -1097,7 +1116,7 @@ export default function InterviewPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={generateReview}
+                                onClick={() => generateReview('normal')}
                                 disabled={isGeneratingReview}
                                 className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
                               >

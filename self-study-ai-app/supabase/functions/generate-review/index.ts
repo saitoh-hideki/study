@@ -10,6 +10,7 @@ interface RequestBody {
   conversationId: string
   fileId?: string
   extractedText?: string
+  reviewType?: 'normal' | 'conversation' | 'learning'
 }
 
 serve(async (req) => {
@@ -65,9 +66,9 @@ serve(async (req) => {
     })
 
     // Parse request body
-    const { conversationId, fileId, extractedText }: RequestBody = await req.json()
+    const { conversationId, fileId, extractedText, reviewType = 'normal' }: RequestBody = await req.json()
     
-    console.log('Received request:', { conversationId, fileId, extractedText: extractedText?.substring(0, 100) })
+    console.log('Received request:', { conversationId, fileId, extractedText: extractedText?.substring(0, 100), reviewType })
 
     if (!conversationId) {
       return new Response(

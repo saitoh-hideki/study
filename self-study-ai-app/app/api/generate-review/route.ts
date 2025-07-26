@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { conversationId, fileId, extractedText } = await request.json()
+    const { conversationId, fileId, extractedText, reviewType = 'normal' } = await request.json()
     
-    console.log('Received request:', { conversationId, fileId, extractedText: extractedText?.substring(0, 100) })
+    console.log('Received request:', { conversationId, fileId, extractedText: extractedText?.substring(0, 100), reviewType })
 
     if (!conversationId) {
       return NextResponse.json(
@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
     const requestBody = {
       conversationId,
       fileId,
-      extractedText
+      extractedText,
+      reviewType
     }
 
     console.log('Calling Edge Function with:', requestBody)
