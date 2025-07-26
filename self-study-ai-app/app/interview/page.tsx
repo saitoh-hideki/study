@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2 } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
 import FiveWhyModal from '@/components/five-why-modal'
+import MECEModal from '@/components/mece-modal'
 
 interface Message {
   id: string
@@ -53,10 +54,12 @@ export default function InterviewPage() {
   const [speechLoading, setSpeechLoading] = useState<string | null>(null) // 音声生成中のメッセージID
   const [isGeneratingReview, setIsGeneratingReview] = useState(false) // レビュー生成中
   const [isFiveWhyModalOpen, setIsFiveWhyModalOpen] = useState(false) // 5ホワイモーダルの状態
+  const [isMECEModalOpen, setIsMECEModalOpen] = useState(false) // MECEモーダルの状態
   const [selectedText, setSelectedText] = useState('') // 選択されたテキスト
   const [showSelectionTooltip, setShowSelectionTooltip] = useState(false) // 選択ツールチップの表示
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }) // ツールチップの位置
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false) // セーブ成功通知の表示
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false) // 5 Whysセーブ成功通知の表示
+  const [showMECESaveSuccess, setShowMECESaveSuccess] = useState(false) // MECEセーブ成功通知の表示
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -182,6 +185,11 @@ export default function InterviewPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
+
+  // MECEモーダルの状態を監視
+  useEffect(() => {
+    console.log('MECEモーダルの状態が変更されました:', isMECEModalOpen)
+  }, [isMECEModalOpen])
 
   const initializeConversation = async () => {
     // This function is now deprecated - use initializeConversationForFile instead
@@ -721,6 +729,13 @@ export default function InterviewPage() {
     // チャットの状態は保持する（messages, conversation, selectedFile等は変更しない）
   }
 
+  // MECE分析を開始
+  const startMECEAnalysis = () => {
+    setSelectedText('') // 選択テキストをクリア
+    setIsMECEModalOpen(true)
+    // チャットの状態は保持する（messages, conversation, selectedFile等は変更しない）
+  }
+
   // 選択ツールチップを非表示
   const hideSelectionTooltip = () => {
     setShowSelectionTooltip(false)
@@ -807,6 +822,15 @@ export default function InterviewPage() {
               >
                 <HelpCircle className="h-4 w-4 mr-2" />
                 5 Whys Analysis
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={startMECEAnalysis}
+                className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all duration-200"
+              >
+                <Layers className="h-4 w-4 mr-2" />
+                MECE Analysis
               </Button>
               <Button
                 variant="outline"
@@ -1040,6 +1064,16 @@ export default function InterviewPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={startMECEAnalysis}
+                            className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
+                          >
+                            <Layers className="h-3 w-3 mr-1" />
+                            MECE Analysis
+                          </Button>
+                          <div className="w-px h-4 bg-gray-300"></div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => router.push('/review')}
                             className="text-xs text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200 rounded-lg"
                           >
@@ -1136,6 +1170,64 @@ export default function InterviewPage() {
         }}
       />
 
+      {/* MECEモーダル */}
+      <MECEModal
+        isOpen={isMECEModalOpen}
+        onClose={() => {
+          console.log('MECEモーダルを閉じます')
+          setIsMECEModalOpen(false)
+        }}
+        initialTheme={selectedText}
+        onSendToChat={async (summary) => {
+          // MECE分析結果をチャット履歴に追加
+          if (conversation) {
+            const newMessage: Message = {
+              id: `temp-${Date.now()}`,
+              conversation_id: conversation.id,
+              role: 'user',
+              content: summary,
+              audio_url: null,
+              created_at: new Date().toISOString()
+            }
+            
+            // メッセージをデータベースに保存
+            if (supabase) {
+              const { data: savedMessage, error } = await supabase
+                .from('messages')
+                .insert({
+                  conversation_id: conversation.id,
+                  role: 'user',
+                  content: summary
+                })
+                .select()
+                .single()
+              
+              if (savedMessage) {
+                // 保存されたメッセージで更新
+                setMessages(prev => [...prev, savedMessage])
+              } else {
+                // エラーの場合は一時的なメッセージを使用
+                setMessages(prev => [...prev, newMessage])
+              }
+            } else {
+              setMessages(prev => [...prev, newMessage])
+            }
+            
+            // AI応答を生成
+            generateAIResponse(summary)
+          }
+          setIsMECEModalOpen(false)
+        }}
+        onSaveSuccess={() => {
+          // MECEセーブ成功通知を表示
+          setShowMECESaveSuccess(true)
+          // 3秒後に通知を非表示
+          setTimeout(() => {
+            setShowMECESaveSuccess(false)
+          }, 3000)
+        }}
+      />
+
       {/* テキスト選択ツールチップ */}
       {showSelectionTooltip && (
         <div
@@ -1168,7 +1260,7 @@ export default function InterviewPage() {
         />
       )}
 
-      {/* セーブ成功通知 */}
+      {/* 5 Whysセーブ成功通知 */}
       {showSaveSuccess && (
         <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg animate-fade-in">
           <div className="flex items-center gap-3">
@@ -1177,10 +1269,10 @@ export default function InterviewPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-green-800">
-                5 Whys分析が保存されました
+                5 Whys analysis saved successfully
               </p>
               <p className="text-xs text-green-600">
-                履歴ページで確認できます
+                You can check it in the history page
               </p>
             </div>
             <Button
@@ -1189,7 +1281,34 @@ export default function InterviewPage() {
               onClick={() => router.push('/five-why')}
               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-100"
             >
-              履歴を見る
+              View History
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* MECEセーブ成功通知 */}
+      {showMECESaveSuccess && (
+        <div className="fixed top-20 right-4 z-50 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-800">
+                MECE analysis saved successfully
+              </p>
+              <p className="text-xs text-blue-600">
+                You can check it in the history page
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/mece')}
+              className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+            >
+              View History
             </Button>
           </div>
         </div>

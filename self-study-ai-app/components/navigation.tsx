@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { FileUp, Mic, BookOpen, Settings, Sparkles, HelpCircle } from 'lucide-react'
+import { FileUp, Mic, BookOpen, Settings, Sparkles, HelpCircle, Layers } from 'lucide-react'
 
 const navigation = [
   { name: 'Upload', href: '/upload', icon: FileUp, description: 'Upload learning materials' },
   { name: 'Interview', href: '/interview', icon: Mic, description: 'AI-powered learning dialogue' },
   { name: 'Review', href: '/review', icon: BookOpen, description: 'View learning records' },
   { name: '5 Whys', href: '/five-why', icon: HelpCircle, description: '5 Whys analysis history' },
+  { name: 'MECE', href: '/mece', icon: Layers, description: 'MECE analysis history' },
   { name: 'Settings', href: '/settings', icon: Settings, description: 'App settings' },
 ]
 
