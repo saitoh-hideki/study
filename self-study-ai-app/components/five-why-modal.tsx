@@ -27,9 +27,10 @@ interface FiveWhyModalProps {
   onClose: () => void
   initialTopic?: string
   onSendToChat?: (summary: string) => void
+  onSaveSuccess?: () => void
 }
 
-export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToChat }: FiveWhyModalProps) {
+export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToChat, onSaveSuccess }: FiveWhyModalProps) {
   const [tree, setTree] = useState<FiveWhyTree>({
     topic: '',
     levels: [
@@ -148,12 +149,10 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
 
                 alert('5 Whys analysis saved successfully')
       onClose()
-      // 履歴ページに遷移（リロード付き）
-      window.location.href = '/five-why'
-      // ページをリロードしてデータを再取得
-      setTimeout(() => {
-        window.location.reload()
-      }, 100)
+      // セーブ成功のコールバックを呼び出し
+      if (onSaveSuccess) {
+        onSaveSuccess()
+      }
     } catch (error) {
       console.error('保存エラー:', error)
               alert(`Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)

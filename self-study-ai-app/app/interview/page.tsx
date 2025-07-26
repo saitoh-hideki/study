@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
@@ -56,8 +56,55 @@ export default function InterviewPage() {
   const [selectedText, setSelectedText] = useState('') // 選択されたテキスト
   const [showSelectionTooltip, setShowSelectionTooltip] = useState(false) // 選択ツールチップの表示
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }) // ツールチップの位置
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false) // セーブ成功通知の表示
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // チャット状態をローカルストレージに保存
+  const saveChatState = () => {
+    if (typeof window !== 'undefined') {
+      const chatState = {
+        messages,
+        conversation,
+        selectedFile,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('chatState', JSON.stringify(chatState))
+    }
+  }
+
+  // チャット状態をローカルストレージから復元
+  const restoreChatState = () => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('chatState')
+      if (savedState) {
+        try {
+          const chatState = JSON.parse(savedState)
+          // 24時間以内のデータのみ復元
+          const isRecent = Date.now() - chatState.timestamp < 24 * 60 * 60 * 1000
+          if (isRecent) {
+            setMessages(chatState.messages || [])
+            setConversation(chatState.conversation || null)
+            setSelectedFile(chatState.selectedFile || null)
+            
+            // 復元された会話がある場合はメッセージを再読み込み
+            if (chatState.conversation && supabase) {
+              loadMessages(chatState.conversation.id)
+            }
+            
+            return true
+          } else {
+            // 古いデータは削除
+            localStorage.removeItem('chatState')
+          }
+        } catch (error) {
+          console.error('Failed to restore chat state:', error)
+          localStorage.removeItem('chatState')
+        }
+      }
+    }
+    return false
+  }
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -79,7 +126,12 @@ export default function InterviewPage() {
 
   useEffect(() => {
     if (supabase) {
-      initializeConversation()
+      // まずローカルストレージからチャット状態を復元を試行
+      const restored = restoreChatState()
+      if (!restored) {
+        // 復元できない場合は通常の初期化
+        initializeConversation()
+      }
     }
   }, [supabase])
 
@@ -96,6 +148,40 @@ export default function InterviewPage() {
       document.removeEventListener('click', handleGlobalClick)
     }
   }, [showSelectionTooltip])
+
+  // ページフォーカス時にチャット状態を復元
+  useEffect(() => {
+    const handleFocus = () => {
+      // チャット状態が空の場合のみ復元を試行
+      if (messages.length === 0 && !conversation && !selectedFile) {
+        restoreChatState()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [messages.length, conversation, selectedFile])
+
+  // チャット状態が変更された時にローカルストレージに保存
+  useEffect(() => {
+    if (messages.length > 0 || conversation || selectedFile) {
+      saveChatState()
+    }
+  }, [messages, conversation, selectedFile])
+
+  // ページを離れる前にチャット状態を保存
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveChatState()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
 
   const initializeConversation = async () => {
     // This function is now deprecated - use initializeConversationForFile instead
@@ -443,6 +529,8 @@ export default function InterviewPage() {
     // Clear current conversation and messages when switching files
     setConversation(null)
     setMessages([])
+    // 新しいファイルを選択した時は古いチャット状態をクリア
+    localStorage.removeItem('chatState')
     // Initialize new conversation for the selected file
     if (supabase) {
       initializeConversationForFile(file.id)
@@ -630,11 +718,28 @@ export default function InterviewPage() {
   const startFiveWhyNormal = () => {
     setSelectedText('') // 選択テキストをクリア
     setIsFiveWhyModalOpen(true)
+    // チャットの状態は保持する（messages, conversation, selectedFile等は変更しない）
   }
 
   // 選択ツールチップを非表示
   const hideSelectionTooltip = () => {
     setShowSelectionTooltip(false)
+  }
+
+  // チャット履歴をクリアする関数
+  const clearChatHistory = () => {
+    if (window.confirm('チャット履歴をクリアしますか？この操作は元に戻せません。')) {
+      setMessages([])
+      setConversation(null)
+      setStreamingMessage('')
+      setInputMessage('')
+      // ローカルストレージからも削除
+      localStorage.removeItem('chatState')
+      // 現在のファイルは保持
+      if (selectedFile && supabase) {
+        initializeConversationForFile(selectedFile.id)
+      }
+    }
   }
 
   return (
@@ -712,6 +817,18 @@ export default function InterviewPage() {
                 <BookOpen className="h-4 w-4 mr-2" />
                 Review List
               </Button>
+              {selectedFile && messages.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearChatHistory}
+                  className="bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-all duration-200"
+                  title="チャット履歴をクリア"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear Chat
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -969,9 +1086,53 @@ export default function InterviewPage() {
         isOpen={isFiveWhyModalOpen}
         onClose={() => setIsFiveWhyModalOpen(false)}
         initialTopic={selectedText}
-        onSendToChat={(summary) => {
-          setInputMessage(summary)
+        onSendToChat={async (summary) => {
+          // 5 Whys分析結果をチャット履歴に追加
+          if (conversation) {
+            const newMessage: Message = {
+              id: `temp-${Date.now()}`,
+              conversation_id: conversation.id,
+              role: 'user',
+              content: summary,
+              audio_url: null,
+              created_at: new Date().toISOString()
+            }
+            
+            // メッセージをデータベースに保存
+            if (supabase) {
+              const { data: savedMessage, error } = await supabase
+                .from('messages')
+                .insert({
+                  conversation_id: conversation.id,
+                  role: 'user',
+                  content: summary
+                })
+                .select()
+                .single()
+              
+              if (savedMessage) {
+                // 保存されたメッセージで更新
+                setMessages(prev => [...prev, savedMessage])
+              } else {
+                // エラーの場合は一時的なメッセージを使用
+                setMessages(prev => [...prev, newMessage])
+              }
+            } else {
+              setMessages(prev => [...prev, newMessage])
+            }
+            
+            // AI応答を生成
+            generateAIResponse(summary)
+          }
           setIsFiveWhyModalOpen(false)
+        }}
+        onSaveSuccess={() => {
+          // セーブ成功通知を表示
+          setShowSaveSuccess(true)
+          // 3秒後に通知を非表示
+          setTimeout(() => {
+            setShowSaveSuccess(false)
+          }, 3000)
         }}
       />
 
@@ -1005,6 +1166,33 @@ export default function InterviewPage() {
           className="fixed inset-0 z-40"
           onClick={hideSelectionTooltip}
         />
+      )}
+
+      {/* セーブ成功通知 */}
+      {showSaveSuccess && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-green-600 rounded-full"></div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-green-800">
+                5 Whys分析が保存されました
+              </p>
+              <p className="text-xs text-green-600">
+                履歴ページで確認できます
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/five-why')}
+              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-100"
+            >
+              履歴を見る
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )
