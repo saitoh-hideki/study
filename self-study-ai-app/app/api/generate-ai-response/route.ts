@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
           message,
           conversationId,
           fileId,
+          messages: messages || [],
           difficulty: difficulty || 'normal',
         }
 

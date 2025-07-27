@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown, Image, Briefcase } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, FileText, Volume2, VolumeX, BookOpen, Loader2, Sparkles, Brain, MessageSquare, HelpCircle, Trash2, Layers, ChevronDown, Image, Briefcase, Coffee } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FileExplorer from '@/components/file-explorer'
@@ -70,6 +70,9 @@ export default function InterviewPage() {
   const [showMECESaveSuccess, setShowMECESaveSuccess] = useState(false) // MECEセーブ成功通知の表示
   const [isBookBuilderOpen, setIsBookBuilderOpen] = useState(false) // Book Builderモーダルの状態
   const [isThinkingImageOpen, setIsThinkingImageOpen] = useState(false) // Thinking Imageモーダルの状態
+  const [isPaused, setIsPaused] = useState(false) // Pause & Reflect状態
+  const [reflectionNote, setReflectionNote] = useState('') // 思考メモ
+  const [showReflectionNote, setShowReflectionNote] = useState(false) // 思考メモ欄の表示
   const router = useRouter()
   const searchParams = useSearchParams()
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -386,10 +389,17 @@ export default function InterviewPage() {
       console.log('fileId from localStorage:', fileId)
       console.log('conversation:', conversation)
       
+      // 会話履歴を準備（最新10件）
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+      
       const requestBody = {
         message: userMessage,
         conversationId: conversation?.id,
         fileId: fileId,
+        messages: conversationHistory,
         difficulty: 'normal', // TODO: Get from user settings
       }
       
@@ -787,6 +797,44 @@ export default function InterviewPage() {
     }
   }
 
+  // Pause & Reflect機能
+  const handlePauseAndReflect = () => {
+    setIsPaused(true)
+    setShowReflectionNote(true)
+    
+    // Pauseメッセージを追加
+    const pauseMessage: Message = {
+      id: `pause-${Date.now()}`,
+      conversation_id: conversation?.id || '',
+      role: 'assistant',
+      content: '了解しました。少し立ち止まって、考える時間も大切ですね ☕️\n\n焦らなくて大丈夫です。気持ちが整ったら"Resume"を押してください。',
+      audio_url: null,
+      created_at: new Date().toISOString()
+    }
+    
+    setMessages(prev => [...prev, pauseMessage])
+    scrollToBottom()
+  }
+
+  const handleResume = () => {
+    setIsPaused(false)
+    setShowReflectionNote(false)
+    
+    // Resumeメッセージを追加
+    const resumeMessage: Message = {
+      id: `resume-${Date.now()}`,
+      conversation_id: conversation?.id || '',
+      role: 'assistant',
+      content: `おかえりなさい！どこから再開しましょうか？\n\n${reflectionNote ? `メモしていただいた「${reflectionNote}」について、詳しく聞かせてください。` : 'さっきの続きでもいいですし、新しい視点が浮かんでいたら教えてください。'}`,
+      audio_url: null,
+      created_at: new Date().toISOString()
+    }
+    
+    setMessages(prev => [...prev, resumeMessage])
+    setReflectionNote('')
+    scrollToBottom()
+  }
+
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 to-white flex pt-16">
       {/* File Explorer Sidebar */}
@@ -1041,15 +1089,58 @@ export default function InterviewPage() {
                         placeholder="Type your message..."
                         onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && sendMessage()}
                         className="flex-1 outline-none text-base bg-transparent placeholder-gray-400"
+                        disabled={isPaused}
                       />
                       <Button
                         onClick={sendMessage}
-                        disabled={isLoading || !inputMessage.trim()}
+                        disabled={isLoading || !inputMessage.trim() || isPaused}
                         className="ml-4 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-3 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                       >
                         <Send className="h-5 w-5" />
                       </Button>
                     </div>
+
+                    {/* Pause & Reflect Button */}
+                    {selectedFile && !isPaused && (
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          variant="ghost"
+                          onClick={handlePauseAndReflect}
+                          className="text-sm text-gray-500 hover:text-sky-600 transition-all duration-200"
+                        >
+                          ⏸ Pause & Reflect
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Resume Button */}
+                    {isPaused && (
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          onClick={handleResume}
+                          className="bg-sky-600 hover:bg-sky-700 text-white rounded-2xl px-6 py-3 transition-all duration-200 shadow-lg"
+                        >
+                          ⏯ Resume
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Reflection Note Input */}
+                    {showReflectionNote && (
+                      <div className="mt-4 p-4 bg-sky-50 border border-sky-200 rounded-2xl">
+                        <p className="text-sm text-sky-800 mb-3">
+                          📝 思考のメモ：<br />
+                          「今のテーマに関して、気になるキーワードや浮かんだ言葉を自由にメモしてみませんか？」
+                        </p>
+                        <textarea
+                          value={reflectionNote}
+                          onChange={(e) => setReflectionNote(e.target.value)}
+                          placeholder="ここにメモを書いてください..."
+                          className="w-full p-3 border border-sky-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
+                          rows={3}
+                        />
+                      </div>
+                    )}
 
                     {/* Quick Actions */}
                     {selectedFile && (
