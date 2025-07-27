@@ -19,9 +19,14 @@ interface BookBuilderModalProps {
   onClose: () => void
   conversationId?: string
   messages?: any[]
+  initialData?: {
+    title?: string
+    introduction?: string
+    chapters?: Chapter[]
+  }
 }
 
-export default function BookBuilderModal({ isOpen, onClose, conversationId, messages }: BookBuilderModalProps) {
+export default function BookBuilderModal({ isOpen, onClose, conversationId, messages, initialData }: BookBuilderModalProps) {
   const [bookTitle, setBookTitle] = useState('')
   const [introduction, setIntroduction] = useState('')
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -37,6 +42,15 @@ export default function BookBuilderModal({ isOpen, onClose, conversationId, mess
   const messagesEndRef = useRef<HTMLDivElement>(null)
   // 削除: useEffect, isAuthenticated, getSession など認証関連
   // Ask AIボタンのdisabled条件から!isAuthenticatedを削除
+
+  // 初期データがある場合は設定
+  useEffect(() => {
+    if (isOpen && initialData) {
+      if (initialData.title) setBookTitle(initialData.title)
+      if (initialData.introduction) setIntroduction(initialData.introduction)
+      if (initialData.chapters) setChapters(initialData.chapters)
+    }
+  }, [isOpen, initialData])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,15 +12,27 @@ interface ThinkingImageModalProps {
   onClose: () => void
   conversationId?: string
   messages?: any[]
+  initialData?: {
+    theme?: string
+    concept?: string
+  }
 }
 
-export default function ThinkingImageModal({ isOpen, onClose, conversationId, messages }: ThinkingImageModalProps) {
+export default function ThinkingImageModal({ isOpen, onClose, conversationId, messages, initialData }: ThinkingImageModalProps) {
   const [title, setTitle] = useState('')
   const [theme, setTheme] = useState('')
   const [customPrompt, setCustomPrompt] = useState('')
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  // 初期データがある場合は設定
+  useEffect(() => {
+    if (isOpen && initialData) {
+      if (initialData.theme) setTheme(initialData.theme)
+      if (initialData.concept) setCustomPrompt(initialData.concept)
+    }
+  }, [isOpen, initialData])
 
   if (!isOpen) return null
 

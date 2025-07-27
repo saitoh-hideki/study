@@ -70,6 +70,8 @@ export default function InterviewPage() {
   const [showMECESaveSuccess, setShowMECESaveSuccess] = useState(false) // MECEセーブ成功通知の表示
   const [isBookBuilderOpen, setIsBookBuilderOpen] = useState(false) // Book Builderモーダルの状態
   const [isThinkingImageOpen, setIsThinkingImageOpen] = useState(false) // Thinking Imageモーダルの状態
+  const [bookBuilderData, setBookBuilderData] = useState<any>(null) // Book Builderの初期データ
+  const [thinkingImageData, setThinkingImageData] = useState<any>(null) // Thinking Imageの初期データ
   const [isPaused, setIsPaused] = useState(false) // Pause & Reflect状態
   const [reflectionNote, setReflectionNote] = useState('') // 思考メモ
   const [showReflectionNote, setShowReflectionNote] = useState(false) // 思考メモ欄の表示
@@ -776,6 +778,22 @@ export default function InterviewPage() {
     // チャットの状態は保持する（messages, conversation, selectedFile等は変更しない）
   }
 
+  // Book Builderを開始
+  const startBookBuilder = (data?: any) => {
+    if (data) {
+      setBookBuilderData(data)
+    }
+    setIsBookBuilderOpen(true)
+  }
+
+  // Thinking Imageを開始
+  const startThinkingImage = (data?: any) => {
+    if (data) {
+      setThinkingImageData(data)
+    }
+    setIsThinkingImageOpen(true)
+  }
+
   // 選択ツールチップを非表示
   const hideSelectionTooltip = () => {
     setShowSelectionTooltip(false)
@@ -1329,17 +1347,25 @@ export default function InterviewPage() {
         {/* Book Builder Modal */}
         <BookBuilderModal
           isOpen={isBookBuilderOpen}
-          onClose={() => setIsBookBuilderOpen(false)}
+          onClose={() => {
+            setIsBookBuilderOpen(false)
+            setBookBuilderData(null)
+          }}
           conversationId={conversation?.id}
           messages={messages}
+          initialData={bookBuilderData}
         />
 
         {/* Thinking Image Modal */}
         <ThinkingImageModal
           isOpen={isThinkingImageOpen}
-          onClose={() => setIsThinkingImageOpen(false)}
+          onClose={() => {
+            setIsThinkingImageOpen(false)
+            setThinkingImageData(null)
+          }}
           conversationId={conversation?.id}
           messages={messages}
+          initialData={thinkingImageData}
         />
       </div>
     </div>

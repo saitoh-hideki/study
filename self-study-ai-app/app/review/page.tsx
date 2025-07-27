@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft, ChevronDown, Brain } from 'lucide-react'
+import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft, ChevronDown, Brain, Bot, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import AICoachModal from '@/components/ai-coach-modal'
 
 interface Session {
   id: string
@@ -53,6 +54,8 @@ export default function ReviewPage() {
   const [isClient, setIsClient] = useState(false)
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [showAICoachModal, setShowAICoachModal] = useState(false)
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -706,6 +709,19 @@ export default function ReviewPage() {
                                     {review.summary}
                                   </CardDescription>
                                 )}
+                                <div className="flex gap-2 mt-4">
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedReview(review);
+                                      setShowAICoachModal(true);
+                                    }}
+                                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                                    size="sm"
+                                  >
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Reflecta Coach
+                                  </Button>
+                                </div>
                               </CardHeader>
                               <CardContent>
                                 <div className="whitespace-pre-wrap text-sm leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-800">
@@ -774,6 +790,19 @@ export default function ReviewPage() {
           </div>
         )}
       </div>
+      
+      {/* AI Coach Modal */}
+      {showAICoachModal && selectedReview && (
+        <AICoachModal
+          isOpen={showAICoachModal}
+          onClose={() => {
+            setShowAICoachModal(false);
+            setSelectedReview(null);
+          }}
+          reviewContent={selectedReview.content}
+          reviewId={selectedReview.id}
+        />
+      )}
     </div>
   )
 } 

@@ -1,11 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import MECEModal from '@/components/mece-modal'
 
 export default function MECENewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [initialTopic, setInitialTopic] = useState<string>('')
+
+  useEffect(() => {
+    const topic = searchParams.get('topic')
+    if (topic) {
+      setInitialTopic(decodeURIComponent(topic))
+    }
+  }, [searchParams])
 
   const handleClose = () => {
     router.push('/interview')
@@ -21,6 +30,7 @@ export default function MECENewPage() {
         isOpen={true} 
         onClose={handleClose}
         onSaveSuccess={handleSaveSuccess}
+        initialTheme={initialTopic}
       />
     </div>
   )

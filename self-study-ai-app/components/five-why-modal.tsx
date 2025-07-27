@@ -37,7 +37,8 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
       { level_number: 1, question: '', answer: '' },
       { level_number: 2, question: '', answer: '' },
       { level_number: 3, question: '', answer: '' },
-      { level_number: 4, question: '', answer: '' }
+      { level_number: 4, question: '', answer: '' },
+      { level_number: 5, question: '', answer: '' }
     ]
   })
   const [isStarted, setIsStarted] = useState(false)
@@ -66,7 +67,8 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
           { level_number: 1, question: '', answer: '' },
           { level_number: 2, question: '', answer: '' },
           { level_number: 3, question: '', answer: '' },
-          { level_number: 4, question: '', answer: '' }
+          { level_number: 4, question: '', answer: '' },
+          { level_number: 5, question: '', answer: '' }
         ]
       }))
     }
@@ -252,7 +254,7 @@ export default function FiveWhyModal({ isOpen, onClose, initialTopic, onSendToCh
 
   // 次の質問を生成する関数
   const generateNextQuestion = (currentLevel: number) => {
-    if (currentLevel < 4) {
+    if (currentLevel < 5) {
       const nextLevel = currentLevel + 1
       generateStreamingQuestion(nextLevel)
     }
