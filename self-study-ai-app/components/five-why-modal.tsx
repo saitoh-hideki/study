@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, Plus, Minus, Save, Loader2, MessageSquare, HelpCircle, Target, Sparkles, Brain } from 'lucide-react'
+import { X, Plus, Minus, Save, Loader2, MessageSquare, HelpCircle, Target, Sparkles, Brain, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface FiveWhyLevel {
@@ -301,12 +301,13 @@ Let's discuss this analysis result in more detail.`
             </div>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
+            className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
           >
-            <X className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
         </div>
 

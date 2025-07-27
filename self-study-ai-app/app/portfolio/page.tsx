@@ -197,8 +197,8 @@ ${chapter.content}
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-sm">
-              <BookOpen className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center shadow-sm">
+              <BookOpen className="h-6 w-6 text-sky-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-sky-600">Portfolio</h1>
@@ -265,7 +265,7 @@ ${chapter.content}
                 
                 {filteredBooks.length === 0 ? (
                   <Card className="text-center py-12">
-                    <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <BookOpen className="h-16 w-16 text-sky-200 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No books yet</h3>
                     <p className="text-gray-600 mb-4">Create your first book with Book Builder</p>
                   </Card>
@@ -343,7 +343,7 @@ ${chapter.content}
                 
                 {filteredImages.length === 0 ? (
                   <Card className="text-center py-12">
-                    <Image className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <Image className="h-16 w-16 text-sky-200 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No thinking images yet</h3>
                     <p className="text-gray-600 mb-4">Create your first image with Thinking Image</p>
                   </Card>
@@ -421,8 +421,8 @@ ${chapter.content}
             <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-100">
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center shadow-sm">
-                    <BookOpen className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-sky-100 to-sky-200 rounded-xl flex items-center justify-center shadow-sm">
+                    <BookOpen className="h-5 w-5 text-sky-600" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">{selectedBook.title}</h2>

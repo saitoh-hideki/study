@@ -19,7 +19,8 @@ import {
   PenTool,
   Sparkles,
   Target,
-  CheckSquare
+  CheckSquare,
+  ArrowLeft
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MECEGeneratingSkeleton } from './mece-skeleton'
@@ -365,12 +366,13 @@ Through this MECE analysis, I have structurally organized the overall picture of
             </div>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
+            className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
           >
-            <X className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
         </div>
 

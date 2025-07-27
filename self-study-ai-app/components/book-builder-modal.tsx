@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { BookOpen, Sparkles, Download, Save, Loader2, Plus, Trash2, MessageSquare, Brain } from 'lucide-react'
+import { BookOpen, Sparkles, Download, Save, Loader2, Plus, Trash2, MessageSquare, Brain, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Chapter {
@@ -288,7 +288,7 @@ ${chapter.content}
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-100 relative">
         {/* Floating AI Chat Button */}
-        <div className="absolute top-8 right-20 z-10">
+        <div className="absolute top-8 right-32 z-10">
           <Button
             onClick={() => setShowAIChat(!showAIChat)}
             className={`rounded-full w-14 h-14 shadow-lg transition-all duration-200 ${
@@ -303,7 +303,7 @@ ${chapter.content}
 
         {/* Floating AI Chat Panel */}
         {showAIChat && (
-          <div className="absolute top-24 right-8 w-96 h-[28rem] bg-white rounded-2xl shadow-2xl border border-gray-200 z-10 flex flex-col">
+          <div className="absolute top-24 right-20 w-96 h-[28rem] bg-white rounded-2xl shadow-2xl border border-gray-200 z-10 flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-sky-50 to-blue-50 rounded-t-2xl">
               <div>
                 <h3 className="font-semibold text-gray-900">AI Writing Partner</h3>
@@ -382,8 +382,8 @@ ${chapter.content}
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-sky-500 rounded-2xl flex items-center justify-center shadow-sm">
-              <BookOpen className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center shadow-sm">
+              <BookOpen className="h-6 w-6 text-sky-600" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-sky-600">Book Builder</h2>
@@ -391,12 +391,13 @@ ${chapter.content}
             </div>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
+            className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
           >
-            ✕
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
         </div>
 
@@ -488,7 +489,7 @@ ${chapter.content}
                 <div className="space-y-4">
                   {chapters.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <BookOpen className="h-12 w-12 mx-auto mb-4 text-sky-200" />
                       <p className="mb-4">Click "Add Chapter" to start organizing your thoughts</p>
                       <p className="text-sm text-gray-400">AI Reference provides chapter suggestions based on your conversation</p>
                     </div>
@@ -623,7 +624,7 @@ ${chapter.content}
                 }
                 setShowSelectionTooltip(false)
               }}
-              className="bg-sky-400 hover:bg-sky-500 text-white text-xs shadow-sm transition-all duration-200 hover:shadow-md"
+              className="bg-sky-100 hover:bg-sky-200 text-sky-600 text-xs shadow-sm transition-all duration-200 hover:shadow-md"
             >
               <BookOpen className="h-3 w-3 mr-1" />
               Add to Book Builder

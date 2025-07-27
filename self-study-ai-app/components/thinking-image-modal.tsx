@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Image, Sparkles, Download, Save, Loader2, RefreshCw } from 'lucide-react'
+import { Image, Sparkles, Download, Save, Loader2, RefreshCw, ArrowLeft } from 'lucide-react'
 
 interface ThinkingImageModalProps {
   isOpen: boolean
@@ -197,8 +197,8 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-sm">
-              <Image className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center shadow-sm">
+              <Image className="h-6 w-6 text-sky-600" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-sky-600">Thinking Image</h2>
@@ -206,12 +206,13 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
             </div>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
+            className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400 shadow-sm transition-all"
           >
-            ✕
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
         </div>
 

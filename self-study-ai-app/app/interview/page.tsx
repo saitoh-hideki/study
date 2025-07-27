@@ -868,8 +868,8 @@ export default function InterviewPage() {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className={`text-2xl font-bold ${selectedFile ? 'text-sky-600' : 'text-gray-900'}`}>
-                  {selectedFile ? selectedFile.name : 'AI Interview'}
+                <h1 className={`text-2xl font-bold ${selectedFile ? 'text-sky-600' : 'text-sky-600'}`}>
+                  {selectedFile ? selectedFile.name : 'Reflecta AI Interview'}
                 </h1>
                 <p className="text-sm text-gray-600 mt-1">
                   {selectedFile ? 'Deepen your learning through dialogue with AI' : 'Please select a file to begin'}
@@ -941,18 +941,15 @@ export default function InterviewPage() {
                   <div className="w-28 h-28 bg-gradient-to-br from-sky-50 to-sky-100 rounded-3xl flex items-center justify-center mx-auto shadow-lg border border-sky-200">
                     <FileText className="h-16 w-16 text-sky-600 opacity-80" />
                   </div>
-                  <div className="absolute -top-3 -right-3 w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center border-2 border-white shadow-md">
-                    <div className="w-3 h-3 bg-sky-600 rounded-full animate-pulse"></div>
-                  </div>
                 </div>
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                    <h3 className="text-3xl font-bold text-sky-600 mb-2">
                       Start your learning session
                     </h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">
-                      Select a learning file from the sidebar or upload a new document to begin your AI-powered learning journey.
-                    </p>
+                                            <p className="text-gray-600 leading-relaxed text-lg">
+                          Select a learning file from the sidebar or upload a new document to begin your Reflecta AI-powered learning journey.
+                        </p>
                   </div>
                   <div className="flex items-center justify-center gap-8 pt-4">
                     <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -1002,26 +999,26 @@ export default function InterviewPage() {
                           onMouseUp={handleTextSelection}
                         >
                           <div className="flex items-start justify-between gap-4">
-                            <p className={`text-sm flex-1 leading-relaxed ${message.role === 'user' ? 'font-medium text-gray-800' : 'text-gray-900'}`}>
-                              {message.content}
-                            </p>
-                            {message.role === 'assistant' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => generateSpeech(message.content, message.id)}
-                                className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
-                                title="Play audio"
-                                disabled={speechLoading === message.id}
-                              >
-                                {speechLoading === message.id ? (
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
-                                ) : (
-                                  <Volume2 className="h-4 w-4 text-sky-600" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
+                                                          <p className={`text-sm flex-1 leading-relaxed ${message.role === 'user' ? 'font-medium text-gray-800' : 'text-gray-900'}`}>
+                                {message.content}
+                              </p>
+                              {message.role === 'assistant' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => generateSpeech(message.content, message.id)}
+                                  className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
+                                  title="Play audio"
+                                  disabled={speechLoading === message.id}
+                                >
+                                  {speechLoading === message.id ? (
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
+                                  ) : (
+                                    <Volume2 className="h-4 w-4 text-sky-600" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           {message.role === 'assistant' && (
                             <div className="text-xs text-gray-400 mt-3 flex items-center gap-1">
                               <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
@@ -1043,25 +1040,25 @@ export default function InterviewPage() {
                           onMouseUp={handleTextSelection}
                         >
                           <div className="flex items-start justify-between gap-4">
-                            <p className="text-sm text-gray-900 flex-1 leading-relaxed">
-                              {streamingMessage}
-                              <span className="animate-pulse text-sky-600">▋</span>
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => generateSpeech(streamingMessage, 'streaming')}
-                              className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
-                              title="Play audio"
-                              disabled={speechLoading === 'streaming'}
-                            >
-                              {speechLoading === 'streaming' ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
-                              ) : (
-                                <Volume2 className="h-4 w-4 text-sky-600" />
-                              )}
-                            </Button>
-                          </div>
+                                                          <p className="text-sm text-gray-900 flex-1 leading-relaxed">
+                                {streamingMessage}
+                                <span className="animate-pulse text-sky-600">▋</span>
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => generateSpeech(streamingMessage, 'streaming')}
+                                className="flex-shrink-0 mt-1 hover:bg-sky-50 rounded-full"
+                                title="Play audio"
+                                disabled={speechLoading === 'streaming'}
+                              >
+                                {speechLoading === 'streaming' ? (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
+                                ) : (
+                                  <Volume2 className="h-4 w-4 text-sky-600" />
+                                )}
+                              </Button>
+                            </div>
                         </div>
                       </div>
                     )}
@@ -1147,13 +1144,13 @@ export default function InterviewPage() {
                     {showReflectionNote && (
                       <div className="mt-4 p-4 bg-sky-50 border border-sky-200 rounded-2xl">
                         <p className="text-sm text-sky-800 mb-3">
-                          📝 思考のメモ：<br />
-                          「今のテーマに関して、気になるキーワードや浮かんだ言葉を自由にメモしてみませんか？」
+                          📝 Reflection Note:<br />
+                          "What keywords or thoughts come to mind about the current topic? Feel free to jot them down."
                         </p>
                         <textarea
                           value={reflectionNote}
                           onChange={(e) => setReflectionNote(e.target.value)}
-                          placeholder="ここにメモを書いてください..."
+                          placeholder="Write your notes here..."
                           className="w-full p-3 border border-sky-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
                           rows={3}
                         />
