@@ -29,7 +29,11 @@ export default function ThinkingImageModal({ isOpen, onClose, conversationId, me
   // 初期データがある場合は設定
   useEffect(() => {
     if (isOpen && initialData) {
-      if (initialData.theme) setTheme(initialData.theme)
+      if (initialData.theme) {
+        setTheme(initialData.theme)
+        // AIコーチから渡されたテーマをタイトルにも設定
+        setTitle(initialData.theme)
+      }
       if (initialData.concept) setCustomPrompt(initialData.concept)
     }
   }, [isOpen, initialData])

@@ -11,8 +11,6 @@ interface AICoachModalProps {
   onClose: () => void;
   reviewContent: string;
   reviewId: string;
-  onStartBookBuilder?: (data: any) => void;
-  onStartThinkingImage?: (data: any) => void;
 }
 
 interface Suggestion {
@@ -32,9 +30,7 @@ export default function AICoachModal({
   isOpen,
   onClose,
   reviewContent,
-  reviewId,
-  onStartBookBuilder,
-  onStartThinkingImage
+  reviewId
 }: AICoachModalProps) {
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,26 +119,35 @@ export default function AICoachModal({
   };
 
   const startBookBuilder = (topic: string) => {
-    if (onStartBookBuilder) {
-      const bookData = {
-        title: topic,
-        introduction: `このトピックについて学んだ内容を整理します。`,
-        chapters: []
-      };
-      onStartBookBuilder(bookData);
-      onClose();
-    }
+    // URLパラメータを使用してブックビルダーモーダルを開く
+    const params = new URLSearchParams();
+    params.set('modal', 'book-builder');
+    params.set('title', topic);
+    params.set('introduction', `このトピックについて学んだ内容を整理します。`);
+    
+    // 現在のURLにパラメータを追加
+    const currentUrl = window.location.href.split('?')[0];
+    const newUrl = `${currentUrl}?${params.toString()}`;
+    window.history.pushState({}, '', newUrl);
+    
+    // ページをリロードしてモーダルを開く
+    window.location.reload();
   };
 
   const startThinkingImage = (topic: string) => {
-    if (onStartThinkingImage) {
-      const imageData = {
-        theme: topic,
-        concept: `この概念について視覚的に表現してみましょう。`
-      };
-      onStartThinkingImage(imageData);
-      onClose();
-    }
+    // URLパラメータを使用してシンキングイメージモーダルを開く
+    const params = new URLSearchParams();
+    params.set('modal', 'thinking-image');
+    params.set('theme', topic);
+    params.set('concept', `この概念について視覚的に表現してみましょう。`);
+    
+    // 現在のURLにパラメータを追加
+    const currentUrl = window.location.href.split('?')[0];
+    const newUrl = `${currentUrl}?${params.toString()}`;
+    window.history.pushState({}, '', newUrl);
+    
+    // ページをリロードしてモーダルを開く
+    window.location.reload();
   };
 
   if (!isOpen) return null;

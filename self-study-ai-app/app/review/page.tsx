@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import { BookOpen, MessageSquare, ThumbsUp, ThumbsDown, Loader2, Trash2, ArrowLeft, ChevronDown, Brain, Bot, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import AICoachModal from '@/components/ai-coach-modal'
+import BookBuilderModal from '@/components/book-builder-modal'
+import ThinkingImageModal from '@/components/thinking-image-modal'
 
 interface Session {
   id: string
@@ -56,6 +58,10 @@ export default function ReviewPage() {
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
   const [showAICoachModal, setShowAICoachModal] = useState(false)
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
+  const [showBookBuilderModal, setShowBookBuilderModal] = useState(false)
+  const [showThinkingImageModal, setShowThinkingImageModal] = useState(false)
+  const [bookBuilderData, setBookBuilderData] = useState<any>(null)
+  const [thinkingImageData, setThinkingImageData] = useState<any>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -68,15 +74,51 @@ export default function ReviewPage() {
   useEffect(() => {
     const handleUrlChange = () => {
       loadSessions()
+      
+      // URLパラメータからモーダルを開く
+      if (isClient) {
+        const urlParams = new URLSearchParams(window.location.search)
+        const modal = urlParams.get('modal')
+        
+        if (modal === 'book-builder') {
+          const title = urlParams.get('title') || 'New Book'
+          const introduction = urlParams.get('introduction') || ''
+          setBookBuilderData({
+            title,
+            introduction,
+            chapters: []
+          })
+          setShowBookBuilderModal(true)
+          
+          // URLパラメータをクリア
+          const newUrl = window.location.pathname
+          window.history.pushState({}, '', newUrl)
+        } else if (modal === 'thinking-image') {
+          const theme = urlParams.get('theme') || 'New Theme'
+          const concept = urlParams.get('concept') || ''
+          setThinkingImageData({
+            theme,
+            concept
+          })
+          setShowThinkingImageModal(true)
+          
+          // URLパラメータをクリア
+          const newUrl = window.location.pathname
+          window.history.pushState({}, '', newUrl)
+        }
+      }
     }
 
     // URLの変更を監視
     window.addEventListener('popstate', handleUrlChange)
     
+    // 初回読み込み時にもチェック
+    handleUrlChange()
+    
     return () => {
       window.removeEventListener('popstate', handleUrlChange)
     }
-  }, [])
+  }, [isClient])
 
   useEffect(() => {
     if (selectedSession) {
@@ -801,6 +843,30 @@ export default function ReviewPage() {
           }}
           reviewContent={selectedReview.content}
           reviewId={selectedReview.id}
+        />
+      )}
+
+      {/* Book Builder Modal */}
+      {showBookBuilderModal && bookBuilderData && (
+        <BookBuilderModal
+          isOpen={showBookBuilderModal}
+          onClose={() => {
+            setShowBookBuilderModal(false);
+            setBookBuilderData(null);
+          }}
+          initialData={bookBuilderData}
+        />
+      )}
+
+      {/* Thinking Image Modal */}
+      {showThinkingImageModal && thinkingImageData && (
+        <ThinkingImageModal
+          isOpen={showThinkingImageModal}
+          onClose={() => {
+            setShowThinkingImageModal(false);
+            setThinkingImageData(null);
+          }}
+          initialData={thinkingImageData}
         />
       )}
     </div>

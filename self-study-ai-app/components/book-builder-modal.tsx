@@ -46,7 +46,9 @@ export default function BookBuilderModal({ isOpen, onClose, conversationId, mess
   // 初期データがある場合は設定
   useEffect(() => {
     if (isOpen && initialData) {
-      if (initialData.title) setBookTitle(initialData.title)
+      if (initialData.title) {
+        setBookTitle(initialData.title)
+      }
       if (initialData.introduction) setIntroduction(initialData.introduction)
       if (initialData.chapters) setChapters(initialData.chapters)
     }
